@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-'''Basic TD(0) implementation illustrated on a die rolling problem where you get reward equal
+'''Basic SARSA(lambda) implementation illustrated on a die rolling problem where you get reward equal
 to die roll unless roll a bad number, which makes you lose everything collected.  Actions are to
 0 - keep rolling, 1- keep the money you've collected and stop playing
 
@@ -11,15 +11,17 @@ N = 10
 e1 = .1
 alpha = .1
 gamma = 0.9
-
+lam = 1
 bad = [10]
+go_on = True
+nruns = 500
 
 
 endstate = 1000
 Q = np.zeros((endstate, 2))
 
 
-#  TD(0)
+#  TD(lambda)
 
 state = 0
 
@@ -29,9 +31,7 @@ def epsilongreedy(Qf, statef, epsilonf):
     if np.random.random() > epsilonf:
         a = Qf[statef, :].argmax()
     else:
-        #args = Qf[statef, :].argsort()
-        #a = args[0]
-        a = np.random.randint(0,2)
+        a = np.random.randint(0, 2)
     return a
 
 
@@ -56,21 +56,26 @@ def environment(statef, a, bad):
 
 
 # + gamma*potential[newstate] -potential[state]
-def td0(Q, s, a, r, ns):
+def tdlambda(Q, s, a, r, ns, e, es):
     Qnew = Q.copy()
-    Qnew[s,a] = Q[s, a] + alpha*(r + gamma*(Q[ns, :].max()) - Q[s, a])
+    diff = alpha*(r + gamma*(Q[ns, :].max()) - Q[s, a])
+    for ss in range(es):
+        for ac in range(2):
+            if e[ss, ac] > 0:
+                Qnew[ss, ac] = Q[ss, ac] + diff*e[ss,ac]
     return Qnew
 
 
-go_on = True
-nruns = 50000
+
 
 for run in range(nruns):
     eps = e1
+    elig = np.zeros((endstate, 2))
     while go_on:
         action = epsilongreedy(Q, state, eps)
+        elig[state, action] = elig[state, action] + 1
         reward, go_on, newstate = environment(state, action, bad)
-        Qnew = td0(Q, state, action, reward, newstate)
+        Qnew = tdlambda(Q, state, action, reward, newstate, elig, endstate)
         #if run % 10000 == 0:
         #    print run
         #    print 'The state is %r and action is %r and prior Q is (%r %r)' % (state, action, Q[state, 0], Q[state, 1])
@@ -78,11 +83,11 @@ for run in range(nruns):
         #    print 'The Q of the new state %r is (%r %r)' % (newstate, Q[newstate, 0], Q[newstate,1])
         #    print 'The updated Q of state %r is (%r %r)' % (state, Qnew[state, 0], Qnew[state, 1])
         #    print ''
-
+        elig = gamma*lam*elig
         Q = Qnew
         state = newstate
     go_on = True
-    state = np.random.randint(0, 6)
+    state = 0 # np.random.randint(0, 6)
 
 printn = 100
 states = np.linspace(0, printn, printn+1)
