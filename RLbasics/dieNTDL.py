@@ -8,13 +8,13 @@ to die roll unless roll a bad number, which makes you lose everything collected.
 
 #  Parameters
 N = 10
-e1 = .5
+e1 = .1
 alpha = .5
 gamma = 0.9
 lam = .2
 bad = [10]
 go_on = True
-nruns = 5000
+nruns = 19000
 
 
 endstate = 500
