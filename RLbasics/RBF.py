@@ -1,7 +1,7 @@
 import numpy as np
 import gym
 import matplotlib.pyplot as plt
-env = gym.make('CartPole-v0')
+env = gym.make('MountainCar-v0')
 
 
 def compute_fs(rbfss, obs, sig):
@@ -24,66 +24,110 @@ def Qlookup(Qf, fvals, a):
     actionvals = np.dot(Qf, fvals)
     return actionvals[a]
 
-dim = 4
-number_rbfs = 100000
-number_actions = 2
-epsilon = .1
-alpha = .0001
+dim = 2
+number_rbfs = 1000
+number_actions = 3
+eps = .5
+alpha = .007
 gamma = 0.9
-lam = .8
+lam = .2
 
-sig = .15
+sig = .005
 rbfs = np.random.uniform(-1, 1, (number_rbfs, dim))
+f_vals_done = np.zeros((number_rbfs))
 #rbfs[:, 0] = np.pi/10*rbfs[:, 0]
 #rbfs[:, 3] = 2.5*rbfs[:, 3]
 
-Q = np.zeros((number_actions, number_rbfs))
+print env.observation_space.low
+print env.observation_space.high
+print env.action_space
 
-for rounds in range(200):
-    eps = epsilon/(rounds + 1)
+Q = np.ones((number_actions, number_rbfs))
+new_action = 0
+donedone = False
+count = 0
+for rounds in range(2000):
+    eps = eps*.999
     elig = np.zeros((number_actions, number_rbfs))
     observation = env.reset()
-    observation[0] = observation[0]/(.26) # normalize 15 degrees
-    observation[3] = observation[0]/(2.4)
-
+    #observation[0] = observation[0]/(.2) # normalize 15 degrees
+    observation[0] = (observation[0] + .3)
+    observation[1] = 12*observation[1]
+    #observation[3] = observation[3]/(2.4)
+    
+    #print 'observation', observation
     f_vals = compute_fs(rbfs, observation, sig)
+    #if donedone and rounds % 10 ==0:
+    #    print 'Most recent goal Q', np.dot(Q, f_vals_done)
+    #    print 'Starting state Q', np.dot(Q, f_vals)
+    #    print ''
+    #print 'activations', f_vals
     action = epsilongreedy(Q, f_vals, eps, number_actions)
-    for t in range(200):
-        #env.render()
+    if rounds % 100 ==0:
+            print rounds
+    for t in range(1000):
+        if rounds % 1000 ==0:
+            env.render()
         new_observation, reward, done, info = env.step(action)
-        new_observation[0] = new_observation[0] / (.26)  # normalize 15 degrees
-        new_observation[3] = new_observation[0] / (2.4)
+        new_observation[0] = (new_observation[0] + .3)
+        new_observation[1] = 12*new_observation[1]
+        #if done:        
+            #print 'observation', new_observation
+            #print 'possible action values', np.dot(Q,f_vals)
+            #print 'action', action
+        
         elig[action, :] = elig[action, :] + f_vals
+        #print 'maximum eligibilities', elig.max()
         f_vals_new = compute_fs(rbfs, new_observation, sig)
+        
         new_action = epsilongreedy(Q, f_vals_new, eps, number_actions)
         Qnewaction = Qlookup(Q, f_vals_new, new_action)
+        #if done:
+            #print 'Q of new action', Qnewaction
 
         TDerror = reward + gamma*Qnewaction - Qlookup(Q, f_vals, action)
-        #print t
-        #print 'TD error: ', TDerror
-        #print 'maximum elig. ', elig.max()
-        #print 'action:, ', action
+        if done:
+            TDerror = reward - Qlookup(Q, f_vals, action)
+        
+        #if done:
+        #    print eps
+        #    print 'Q before', Qlookup(Q, f_vals, action)
+            #print t
+            #print 'TD error: ', TDerror
+            #print 'maximum elig. ', elig.max()
+            #print 'action:, ', action
 
         Q[action, :] = Q[action, :] + alpha*TDerror*elig[action, :]
-
-        elig = lam*gamma*elig
-        f_vals = f_vals_new
+        #if done:
+        #    print 'Q after', Qlookup(Q, f_vals, action)
+        
+        TDerrornew = reward + gamma*Qnewaction - Qlookup(Q, f_vals, action)
+        if done:
+            TDerrornew = reward - Qlookup(Q, f_vals, action)
+        
+        elig[:] = lam*gamma*elig
+        f_vals[:] = f_vals_new
+        #if done:
+            #print 'reward:', reward
+            #print 'Target: ', reward + gamma*Qnewaction
+            #print 'max TD update', np.abs(alpha*TDerror*elig[action, :]).max()
+            #print 'min TD update', np.abs(alpha*TDerror*elig[action, :]).min()
+            #print 'TD error before', TDerror
+            #print 'TD error after', TDerrornew
+            
         action = new_action
         if done:
-            print 'Ended at timestep: %r' % t
+            count +=1
+            #print 'Ended at timestep: %r' % t
+            #print 'Fraction completed:', count/(rounds +0.0)
+            donedone= True
+            #f_vals_done[:] = f_vals
+            #print ''
             break
-    print 'TD error: ', TDerror
-    #print 'maximum elig. ', elig.max()
-    #print 'Eligibility : %r ' % elig
-    #print 'Q value max: %r ' % Q.max()
+        if Q.max() > 1000:
+            print 'Q diverged'
+            break
+        if rounds % 100 ==0:
+            print 'Fraction completed:', count/(rounds +0.0)
 
-#for i_episode in range(20):
-#    observation = env.reset()
-#    for t in range(100):
-#        env.render()
-#        print(observation)
-#        action = env.action_space.sample()
-#        observation, reward, done, info = env.step(action)
-#        if done:
-#            print("Episode finished after {} timesteps".format(t+1))
-#            break
+print 'Fraction completed:', count/(rounds +0.0)
