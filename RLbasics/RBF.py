@@ -28,11 +28,11 @@ dim = 2
 number_rbfs = 1000
 number_actions = 3
 eps = .5
-alpha = .007
-gamma = 0.9
+alpha = .001
+gamma = 0.95
 lam = .2
 
-sig = .005
+sig = .0025
 rbfs = np.random.uniform(-1, 1, (number_rbfs, dim))
 f_vals_done = np.zeros((number_rbfs))
 #rbfs[:, 0] = np.pi/10*rbfs[:, 0]
@@ -46,7 +46,10 @@ Q = np.ones((number_actions, number_rbfs))
 new_action = 0
 donedone = False
 count = 0
-for rounds in range(2000):
+NUM_EPISODES = 5000
+NUM_STEPS = 2000
+countvec = np.zeros(NUM_EPISODES)
+for rounds in range(NUM_EPISODES):
     eps = eps*.999
     elig = np.zeros((number_actions, number_rbfs))
     observation = env.reset()
@@ -63,11 +66,9 @@ for rounds in range(2000):
     #    print ''
     #print 'activations', f_vals
     action = epsilongreedy(Q, f_vals, eps, number_actions)
-    if rounds % 100 ==0:
-            print rounds
-    for t in range(1000):
-        if rounds % 1000 ==0:
-            env.render()
+    for t in range(NUM_STEPS):
+        #if rounds % 100 ==0:
+        #    env.render()
         new_observation, reward, done, info = env.step(action)
         new_observation[0] = (new_observation[0] + .3)
         new_observation[1] = 12*new_observation[1]
@@ -86,8 +87,8 @@ for rounds in range(2000):
             #print 'Q of new action', Qnewaction
 
         TDerror = reward + gamma*Qnewaction - Qlookup(Q, f_vals, action)
-        if done:
-            TDerror = reward - Qlookup(Q, f_vals, action)
+        #if done:
+        #    TDerror = reward - Qlookup(Q, f_vals, action)
         
         #if done:
         #    print eps
@@ -102,8 +103,8 @@ for rounds in range(2000):
         #    print 'Q after', Qlookup(Q, f_vals, action)
         
         TDerrornew = reward + gamma*Qnewaction - Qlookup(Q, f_vals, action)
-        if done:
-            TDerrornew = reward - Qlookup(Q, f_vals, action)
+        #if done:
+        #    TDerrornew = reward - Qlookup(Q, f_vals, action)
         
         elig[:] = lam*gamma*elig
         f_vals[:] = f_vals_new
@@ -127,7 +128,17 @@ for rounds in range(2000):
         if Q.max() > 1000:
             print 'Q diverged'
             break
-        if rounds % 100 ==0:
+    if done:
+        countvec[rounds] = t
+    else:
+        countvec[rounds] = NUM_STEPS
+    if rounds % 100 ==0:
+        print rounds
+        if rounds >0:
             print 'Fraction completed:', count/(rounds +0.0)
+            print ''
 
 print 'Fraction completed:', count/(rounds +0.0)
+
+plt.plot(countvec)
+plt.show()
