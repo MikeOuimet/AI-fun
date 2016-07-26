@@ -28,7 +28,7 @@ dim = 2
 number_rbfs = 1000
 number_actions = 3
 eps = .5
-alpha = .001
+alpha = .005
 gamma = 0.95
 lam = .2
 
@@ -47,7 +47,7 @@ new_action = 0
 donedone = False
 count = 0
 NUM_EPISODES = 5000
-NUM_STEPS = 2000
+NUM_STEPS = 1000
 countvec = np.zeros(NUM_EPISODES)
 for rounds in range(NUM_EPISODES):
     eps = eps*.999
@@ -67,8 +67,8 @@ for rounds in range(NUM_EPISODES):
     #print 'activations', f_vals
     action = epsilongreedy(Q, f_vals, eps, number_actions)
     for t in range(NUM_STEPS):
-        #if rounds % 100 ==0:
-        #    env.render()
+        if rounds % 100 ==0:
+            env.render()
         new_observation, reward, done, info = env.step(action)
         new_observation[0] = (new_observation[0] + .3)
         new_observation[1] = 12*new_observation[1]
