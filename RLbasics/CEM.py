@@ -4,7 +4,8 @@ import matplotlib.pyplot as plt
 env = gym.make('CartPole-v0')
 
 n_samples = 100
-dim = 4
+dim = max(np.shape(env.observation_space))
+#dim_actions = env.action_space.n
 elite = .2
 
 mean = np.zeros(dim)
@@ -21,7 +22,7 @@ for n_cem in range(10):
         for rounds in range(nrounds):
             observation = env.reset()
             for time in range(1500):
-                if np.dot(samples[samp,:],observation) > 0:
+                if np.dot(samples[samp, :], observation) > 0:
                     action = 0
                 else:
                     action = 1
