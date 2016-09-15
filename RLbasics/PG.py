@@ -42,10 +42,21 @@ states = tau[:, 0:dim]
 actions = tau[:, dim: dim + dim_actions]
 
 
-loss = tf.log(tf.matmul(action_choice, ao))*reward_signal
+#loss = tf.log(tf.matmul(action_choice, ao))*reward_signal
+loss = tf.matmul(ao,tf.transpose(action_choice))
+
 
 init = tf.initialize_all_variables()
 sess = tf.Session()
 sess.run(init)
+
+env.render(close=True)
+
+loss_val = sess.run(loss, feed_dict={state: states, action_choice: actions, reward_signal: rewards})
+
+print sess.run(ao, feed_dict={state: states, action_choice: actions, reward_signal: rewards})
+print sess.run(action_choice + 0.0, feed_dict={state: states, action_choice: actions, reward_signal: rewards})
+#loss_val = sess.run(tf.matmul(action_choice, ao), feed_dict={state: states[0, :], action_choice: actions[0,:]})
+print loss_val
 
 

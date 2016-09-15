@@ -26,7 +26,7 @@ def meandist2points(image, kpoints):
     return np.mean(vecdists)
 
 
-img = ndimage.imread('fw2.png')
+img = ndimage.imread('smallerres.png')
 
 img_height = np.shape(img)[0]
 img_width = np.shape(img)[1]
@@ -35,7 +35,7 @@ plt.imshow(img)
 
 new_img = np.reshape(img, (img_width*img_height, 3))
 
-k = 64
+k = 4
 
 kvec = np.random.uniform(0, 255, (k, 3))
 err = meandist2points(new_img, kvec)
@@ -84,7 +84,7 @@ plt.imshow(-final_img)
 
 residual = np.abs(compressed_img - new_img)
 residual = np.sum(residual, axis = 1)
-plt.hist(residual, 20)
+#plt.hist(residual, 20)
 
 #plt.imshow(final_img)
 
