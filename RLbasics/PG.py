@@ -10,18 +10,24 @@ def bias_variable(shape):
   initial = tf.constant(0.1, shape=shape)
   return tf.Variable(initial)
 
+
+#Initial state and NN
 env = gym.make('CartPole-v0')
 
 dim = max(np.shape(env.observation_space))
 dim_actions = env.action_space.n
 
-num_nodes = 20
+num_nodes = 5
+n_timesteps = 3
+num_gradients =50
+maxsteps = 400
+num_runs = 1
 
 sess = tf.InteractiveSession()
 
 state = tf.placeholder(tf.float32, shape=[None, dim])
 action_choice = tf.placeholder(tf.float32, shape=[None, dim_actions])
-reward_signal = tf.placeholder(tf.float32, shape=[None, 1])
+reward_signal = tf.placeholder(tf.float32, shape=[None,1])
 
 W1 = weight_variable([dim, num_nodes])
 b1 = bias_variable([num_nodes])
@@ -31,32 +37,66 @@ Wo = weight_variable([num_nodes, dim_actions])
 bo = bias_variable([dim_actions])
 ao = tf.nn.softmax(tf.matmul(a1, Wo) + bo)
 
-n_timesteps = 2
+log_prob = tf.log(tf.diag_part(tf.matmul(ao,tf.transpose(action_choice))))# fix this so it doesn't need diag
+log_prob = tf.reshape(log_prob, (1,n_timesteps)) # how can I matrix multiply without hardcode reshaping
+loss =  -tf.matmul(log_prob, reward_signal)/n_timesteps
+train_step = tf.train.GradientDescentOptimizer(0.5).minimize(loss)
+init = tf.initialize_all_variables()
+sess = tf.Session()
+sess.run(init)
+
+for run in range(num_runs):
+
+    states = np.zeros((maxsteps,dim))
+    actions = np.zeros((maxsteps,dim_actions))
+    rewards = np.zeros((maxsteps,1))
+    time =0
+    observation = env.reset()
+    observation = np.reshape(observation,(1,dim))
+    done = False
+    
+    while not done and time < maxsteps:
+        action_prob = sess.run(ao, feed_dict={state: observation})
+        action_choice = np.argmax(np.random.multinomial(1, action_prob[0]))
+        new_observation, reward, done, info = env.step(action_choice)
+        
+        states[time, :]= observation
+    
+        actions[time, action_choice] = 1
+        rewards[time, :] = reward
+        time +=1
+        
+        observation[:] = new_observation
+
+states = states[:time, :]
+actions = actions[:time, :]
+rewards = rewards[:time,:]
+
+
+print sess.run(loss, feed_dict={state: states, action_choice: actions, reward_signal: rewards})
+for i in range(num_gradients):
+    sess.run(train_step, feed_dict={state: states, action_choice: actions, reward_signal: rewards})
+    print sess.run(loss, feed_dict={state: states, action_choice: actions, reward_signal: rewards})
+print sess.run(ao, feed_dict={state: states})
+
+env.render(close=True)
+
+
+
+#a=  sess.run(log_prob, feed_dict={state: states, action_choice: actions, reward_signal: rewards})
+#b= sess.run(reward_signal+0.0, feed_dict={state: states, action_choice: actions, reward_signal: rewards})
+#print sess.run(loss, feed_dict={state: states, action_choice: actions, reward_signal: rewards})
+
+
+'''   Test data
 tau = np.zeros((n_timesteps, dim + dim_actions + 1))
 tau[0, :] = [-.5, 1, 0, .1, 0, 1, 1]
-tau[1, :] = [-.2, .6, 10, .01, .1, 0, 3]
+tau[1, :] = [-.2, .6, 10, .01, 1, 0, 3]
+tau[2, :] = [-.1, -.6, -10, -.01, 0, 1, 3]
 
 rewards = np.sum(tau, axis=0)[dim+dim_actions]*np.ones((n_timesteps, 1))
 
 states = tau[:, 0:dim]
 actions = tau[:, dim: dim + dim_actions]
-
-
-#loss = tf.log(tf.matmul(action_choice, ao))*reward_signal
-loss = tf.matmul(ao,tf.transpose(action_choice))
-
-
-init = tf.initialize_all_variables()
-sess = tf.Session()
-sess.run(init)
-
-env.render(close=True)
-
-loss_val = sess.run(loss, feed_dict={state: states, action_choice: actions, reward_signal: rewards})
-
-print sess.run(ao, feed_dict={state: states, action_choice: actions, reward_signal: rewards})
-print sess.run(action_choice + 0.0, feed_dict={state: states, action_choice: actions, reward_signal: rewards})
-#loss_val = sess.run(tf.matmul(action_choice, ao), feed_dict={state: states[0, :], action_choice: actions[0,:]})
-print loss_val
-
+'''
 
