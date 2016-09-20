@@ -24,7 +24,7 @@ num_gradients =1
 maxsteps = 400
 num_runs = 2000
 
-#sess = tf.InteractiveSession()
+sess = tf.InteractiveSession()
 
 state = tf.placeholder(tf.float32, shape=[None, dim])
 action_choice = tf.placeholder(tf.float32, shape=[None, dim_actions])
@@ -84,15 +84,18 @@ for run in range(num_runs):
     rewards = rewards[:timestep,:]
     rewards = np.sum(rewards)*rewards # fix this so it includes sum of costs after that action
 
-    print 'time lasted', timestep
-    print sess.run(loss, feed_dict={state: states, action_choice: actions, reward_signal: rewards, n_timesteps: timestep})
+    if run % 50 == 0:
+        print 'run #: ', run
+        print 'Time lasted: ', timestep
+    #print 'time lasted', timestep
+    #print sess.run(loss, feed_dict={state: states, action_choice: actions, reward_signal: rewards, n_timesteps: timestep})
    
     for i in range(num_gradients):
         sess.run(train_step, feed_dict={state: states, action_choice: actions, reward_signal: rewards, n_timesteps: timestep})
         #print sess.run(loss, feed_dict={state: states, action_choice: actions, reward_signal: rewards, n_timesteps: timestep})
     #print sess.run(ao, feed_dict={state: states})
-    print sess.run(loss, feed_dict={state: states, action_choice: actions, reward_signal: rewards, n_timesteps: timestep})
-    print ''
+    #print sess.run(loss, feed_dict={state: states, action_choice: actions, reward_signal: rewards, n_timesteps: timestep})
+    #print ''
     timestep_learning[run] = timestep
     
 plt.plot(timestep_learning)
