@@ -22,7 +22,7 @@ num_nodes = 100
 
 num_gradients =1
 maxsteps = 400
-num_runs = 2000
+num_runs = 500
 
 sess = tf.InteractiveSession()
 
@@ -66,6 +66,7 @@ for run in range(num_runs):
     done = False
     
     while not done and timestep < maxsteps:
+        env.render()
         action_prob = sess.run(ao, feed_dict={state: observation})
         action = np.argmax(np.random.multinomial(1, action_prob[0]))
         new_observation, reward, done, info = env.step(action)
@@ -97,11 +98,12 @@ for run in range(num_runs):
     #print sess.run(loss, feed_dict={state: states, action_choice: actions, reward_signal: rewards, n_timesteps: timestep})
     #print ''
     timestep_learning[run] = timestep
-    
+
+env.render(close=True)
 plt.plot(timestep_learning)
 plt.show()
 
-env.render(close=True)
+
 
 
 
