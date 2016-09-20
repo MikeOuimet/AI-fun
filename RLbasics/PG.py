@@ -1,13 +1,14 @@
 import numpy as np
 import gym
 import tensorflow as tf
+import matplotlib.pyplot as plt
 
 def weight_variable(shape):
   initial = tf.truncated_normal(shape, stddev=0.1)
   return tf.Variable(initial)
 
 def bias_variable(shape):
-  initial = tf.constant(0.1, shape=shape)
+  initial = tf.constant(0.2, shape=shape)
   return tf.Variable(initial)
 
 
@@ -17,18 +18,18 @@ env = gym.make('CartPole-v0')
 dim = max(np.shape(env.observation_space))
 dim_actions = env.action_space.n
 
-num_nodes = 50
+num_nodes = 100
 
-num_gradients =200
+num_gradients =1
 maxsteps = 400
-num_runs = 1
+num_runs = 2000
 
 #sess = tf.InteractiveSession()
 
 state = tf.placeholder(tf.float32, shape=[None, dim])
 action_choice = tf.placeholder(tf.float32, shape=[None, dim_actions])
 reward_signal = tf.placeholder(tf.float32, shape=(None,1) )
-#n_timesteps = tf.placeholder(tf.int16, shape = ())
+n_timesteps = tf.placeholder(tf.float32, shape = ())
 
 
 W1 = weight_variable([dim, num_nodes])
@@ -45,15 +46,15 @@ log_prob1 = tf.matmul(ao,tf.transpose(action_choice))
 log_prob2 = tf.diag_part(tf.matmul(ao,tf.transpose(action_choice)))
 log_prob = tf.log(tf.diag_part(tf.matmul(ao,tf.transpose(action_choice))))# fix this so it doesn't need diag
 log_prob = tf.reshape(log_prob, (1,-1)) # how can I matrix multiply without hardcode reshaping
-loss =  -tf.matmul(log_prob, reward_signal)
-loss = tf.reshape(loss, [-1])
-train_step = tf.train.GradientDescentOptimizer(0.01).minimize(loss)
+loss =  tf.matmul(log_prob, reward_signal)
+loss = -tf.reshape(loss, [-1])#/n_timesteps
+train_step = tf.train.AdamOptimizer().minimize(loss)
 init = tf.initialize_all_variables()
 sess = tf.Session()
 sess.run(init)
 
 
-
+timestep_learning = np.zeros((num_runs,1))
 for run in range(num_runs):
 
     states = np.zeros((maxsteps,dim), dtype='float32')
@@ -77,17 +78,25 @@ for run in range(num_runs):
         
         observation[:] = new_observation
 
-states = states[:timestep, :]
-actions = actions[:timestep, :]
-rewards = rewards[:timestep,:]
+    states = states[:timestep, :]
+    actions = actions[:timestep, :]
+    #rewards = np.cumsum(rewards[::-1])[::-1] # this should help implement sum of later rewards
+    rewards = rewards[:timestep,:]
+    rewards = np.sum(rewards)*rewards # fix this so it includes sum of costs after that action
 
-
-print sess.run(loss, feed_dict={state: states, action_choice: actions, reward_signal: rewards})
-
-for i in range(num_gradients):
-    sess.run(train_step, feed_dict={state: states, action_choice: actions, reward_signal: rewards})
-    print sess.run(loss, feed_dict={state: states, action_choice: actions, reward_signal: rewards})
-#print sess.run(ao, feed_dict={state: states})
+    print 'time lasted', timestep
+    print sess.run(loss, feed_dict={state: states, action_choice: actions, reward_signal: rewards, n_timesteps: timestep})
+   
+    for i in range(num_gradients):
+        sess.run(train_step, feed_dict={state: states, action_choice: actions, reward_signal: rewards, n_timesteps: timestep})
+        #print sess.run(loss, feed_dict={state: states, action_choice: actions, reward_signal: rewards, n_timesteps: timestep})
+    #print sess.run(ao, feed_dict={state: states})
+    print sess.run(loss, feed_dict={state: states, action_choice: actions, reward_signal: rewards, n_timesteps: timestep})
+    print ''
+    timestep_learning[run] = timestep
+    
+plt.plot(timestep_learning)
+plt.show()
 
 env.render(close=True)
 
