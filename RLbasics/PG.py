@@ -21,8 +21,8 @@ dim_actions = env.action_space.n
 num_nodes = 100
 
 num_gradients = 1
-maxsteps = 300
-num_runs = 500
+maxsteps = 400
+num_runs = 1000
 
 sess = tf.InteractiveSession()
 
@@ -78,9 +78,9 @@ for run in range(num_runs):
 
     states = states[:timestep, :]
     actions = actions[:timestep, :]
-    #rewards = np.cumsum(rewards[::-1])[::-1] # this should help implement sum of later rewards
     rewards = rewards[:timestep,:]
-    rewards = np.sum(rewards)*rewards # fix this so it includes sum of costs after that action
+    rewards[:,0] = np.cumsum(rewards[::-1])[::-1]
+    #rewards = np.sum(rewards)*rewards # fix this so it includes sum of costs after that action
 
     if run % 50 == 0:
         print 'run #: ', run
