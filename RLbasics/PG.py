@@ -13,7 +13,7 @@ def bias_variable(shape):
 
 
 #Initial state and NN
-env = gym.make('CartPole-v0')
+env = gym.make('MountainCar-v0')
 
 dim = max(np.shape(env.observation_space))
 dim_actions = env.action_space.n
@@ -21,7 +21,7 @@ dim_actions = env.action_space.n
 num_nodes = 100
 
 num_gradients = 1
-maxsteps = 400
+maxsteps = 1000
 num_runs = 1000
 
 sess = tf.InteractiveSession()
@@ -63,7 +63,8 @@ for run in range(num_runs):
     done = False
     
     while not done and timestep < maxsteps:
-        #env.render()
+        if run % 50 ==0:
+            env.render()
         action_prob = sess.run(ao, feed_dict={state: observation})
         action = np.argmax(np.random.multinomial(1, action_prob[0]))
         new_observation, reward, done, info = env.step(action)
