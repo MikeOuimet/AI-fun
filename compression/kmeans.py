@@ -26,7 +26,7 @@ def meandist2points(image, kpoints):
     return np.mean(vecdists)
 
 
-img = ndimage.imread('smallerres.png')
+img = ndimage.imread('EvanandCaitlin.jpg')
 
 img_height = np.shape(img)[0]
 img_width = np.shape(img)[1]
@@ -35,8 +35,10 @@ plt.imshow(img)
 
 new_img = np.reshape(img, (img_width*img_height, 3))
 
-k = 4
+#num_ks = 30
+#for k in range(1, num_ks):
 
+k = 29
 kvec = np.random.uniform(0, 255, (k, 3))
 err = meandist2points(new_img, kvec)
 while True:
@@ -61,7 +63,7 @@ while True:
     err2 = meandist2points(new_img, kvec)
     print err2
     print ''
-    if np.abs(err2 - err) < .1:
+    if np.abs(err2 - err) < .01:
         break
     err = err2
 
@@ -78,12 +80,14 @@ compressed_img = np.zeros((img_width*img_height, 3))
 for means in range(k):
     compressed_img[nearest == means, :] = kfinal[means]
 
-all_black = 255*np.ones((img_height,img_width,3))
 final_img = np.reshape(compressed_img, (img_height,img_width,3))
 plt.imshow(-final_img)
 
-residual = np.abs(compressed_img - new_img)
-residual = np.sum(residual, axis = 1)
+stringname = 'EvanCaitlin%dcolor-moreconvergence' % k
+plt.imsave(fname=stringname, arr= -final_img, format='png')
+
+#residual = np.abs(compressed_img - new_img)
+#residual = np.sum(residual, axis = 1)
 #plt.hist(residual, 20)
 
 #plt.imshow(final_img)

@@ -14,14 +14,14 @@ samples = np.random.multivariate_normal(mean, cov, n_samples)
 
 print samples.shape
 
-for n_cem in range(10):
+for n_cem in range(1000):
     score = np.zeros(n_samples)
     nrounds = 10
     for samp in range(n_samples):
         count = 0
         for rounds in range(nrounds):
             observation = env.reset()
-            for time in range(1500):
+            for time in range(200):
                 if np.dot(samples[samp, :], observation) > 0:
                     action = 0
                 else:

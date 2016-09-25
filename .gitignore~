@@ -1,2 +1,4 @@
-*.png
-/idea
+.gitignore~
+.idea
+*png
+uploadtogym.py
