@@ -14,7 +14,7 @@ def bias_variable(shape):
 
 #Initial state and NN
 env = gym.make('CartPole-v0')
-env.monitor.start('/tmp/cartpole-experiment-1', force=True)
+#env.monitor.start('/tmp/cartpole-experiment-1', force=True)
 
 dim = max(np.shape(env.observation_space))
 dim_actions = env.action_space.n
@@ -60,7 +60,7 @@ for run in range(num_runs):
     rewards = np.zeros((maxsteps,1), dtype='float32')
     timestep =0
     observation = env.reset()
-    observation = np.reshape(observation,(1,dim))
+    observation = np.reshape(observation, (1, dim))
     done = False
     
     while not done and timestep < maxsteps:
@@ -90,7 +90,7 @@ for run in range(num_runs):
         sess.run(train_step, feed_dict={state: states, action_choice: actions, reward_signal: rewards, n_timesteps: timestep})
     timestep_learning[run] = timestep
 
-env.monitor.close()
+#env.monitor.close()
 env.render(close=True)
 plt.plot(timestep_learning)
 plt.show()
