@@ -13,8 +13,8 @@ def bias_variable(shape):
 
 
 #Initial state and NN
-env = gym.make('MountainCar-v0')
-#env.monitor.start('/tmp/cartpole-experiment-1', force=True)
+env = gym.make('CartPole-v1')
+env.monitor.start('/tmp/cartpole-experiment-1', force=True)
 
 dim = max(np.shape(env.observation_space))
 dim_actions = env.action_space.n
@@ -22,10 +22,11 @@ dim_actions = env.action_space.n
 num_nodes = 100
 
 num_nodes_value = 100
+discount_factor = .999
 
 num_gradients = 1
-maxsteps = 200
-num_runs = 1000
+maxsteps = 1000
+num_runs = 2000
 
 sess = tf.InteractiveSession()
 
@@ -75,20 +76,26 @@ sess = tf.Session()
 sess.run(init)
 
 
+reward_discount = np.ones(maxsteps)
+for rs in range(1,maxsteps):
+	reward_discount[rs] = discount_factor*reward_discount[rs-1] #generate discounting vector to multiply rewards by
+
 timestep_learning = np.zeros((num_runs,1))
 for run in range(num_runs):
 
     states = np.zeros((maxsteps,dim), dtype='float32')
     actions = np.zeros((maxsteps,dim_actions), dtype='float32')
     rewards = np.zeros((maxsteps,1), dtype='float32')
+    weighted_sum_rewards = np.zeros((maxsteps,1), dtype='float32')
+    final_rewards = np.zeros((maxsteps,1), dtype='float32')
     timestep =0
     observation = env.reset()
     observation = np.reshape(observation, (1, dim))
     done = False
     
     while not done and timestep < maxsteps:
-        if run % 50 == 0:
-            env.render()
+        #if run % 50 == 0:
+        #    env.render()
         action_prob = sess.run(ao, feed_dict={state: observation})
         action = np.argmax(np.random.multinomial(1, action_prob[0]))
         new_observation, reward, done, info = env.step(action)
@@ -101,16 +108,25 @@ for run in range(num_runs):
         
         observation[:] = new_observation
 
-        timestep_learning[run]=timestep
-    states = states[:timestep, :]
-    actions = actions[:timestep, :]
-    rewards = rewards[:timestep,:]
-    rewards[:, 0] = np.cumsum(rewards[::-1])[::-1]
+    
+    timestep_learning[run]=timestep
+    timestep_of_run = timestep
+    states = states[:timestep_of_run, :]
+    actions = actions[:timestep_of_run, :]
+    rewards = rewards[:timestep_of_run,:]
+    #summed_rewards[:, 0] = np.cumsum(rewards[::-1])[::-1]
+    
+    for step in range(timestep_of_run):
+    	weighted_sum_rewards[step,0] = rewards[step:,0].dot(reward_discount[:timestep_of_run - step])
+    weighted_sum_rewards= np.reshape(weighted_sum_rewards[:timestep_of_run,0], (timestep_of_run, 1))
+    
+    final_rewards = weighted_sum_rewards
+
     #print 'value function loss'
-    #print sess.run(loss_value, feed_dict={state: states, reward_signal: rewards})
+    #print sess.run(loss_value, feed_dict={state: states, reward_signal: final_rewards})
     for i in range(num_gradients):
-        sess.run(train_step_value, feed_dict={state: states, action_choice: actions, reward_signal: rewards})
-    #    print sess.run(loss_value, feed_dict={state: states, reward_signal: rewards})
+        sess.run(train_step_value, feed_dict={state: states, action_choice: actions, reward_signal: final_rewards})
+    #    print sess.run(loss_value, feed_dict={state: states, reward_signal: final_rewards})
     #print ''
 
 
@@ -119,22 +135,25 @@ for run in range(num_runs):
     if run % 50 == 0:
         print 'run #: ', run
         print 'Time lasted: ', timestep
-        print 'value function loss', sess.run(loss_value, feed_dict={state: states, reward_signal: rewards})
-        print 'policy function loss', sess.run(loss, feed_dict={state: states, action_choice: actions, reward_signal: rewards})
+        print 'value function loss', sess.run(loss_value, feed_dict={state: states, reward_signal: final_rewards})
+        print 'policy function loss', sess.run(loss, feed_dict={state: states, action_choice: actions, reward_signal: final_rewards})
         print ''
-    #print sess.run(loss, feed_dict={state: states, action_choice: actions, reward_signal: rewards})
+    #print 'policy function loss'
+    #print sess.run(loss, feed_dict={state: states, action_choice: actions, reward_signal: final_rewards})
     for i in range(num_gradients):
-        sess.run(train_step, feed_dict={state: states, action_choice: actions, reward_signal: rewards})
-    #    print sess.run(loss, feed_dict={state: states, action_choice: actions, reward_signal: rewards})
+        sess.run(train_step, feed_dict={state: states, action_choice: actions, reward_signal: final_rewards})
+    #    print sess.run(loss, feed_dict={state: states, action_choice: actions, reward_signal: final_rewards})
     #print ''
 
 
 
-#timestep_learning[run] = timestep
+timestep_learning[run] = timestep
 
 #env.monitor.close()
 env.render(close=True)
-#plt.plot(timestep_learning)
-#plt.show()
+plt.plot(timestep_learning)
+plt.show()
 
-#env.monitor.close()
+env.monitor.close()
+
+
