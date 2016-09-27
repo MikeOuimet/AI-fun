@@ -14,7 +14,7 @@ def bias_variable(shape):
 
 #Initial state and NN
 env = gym.make('CartPole-v1')
-env.monitor.start('/tmp/cartpole-experiment-1', force=True)
+#env.monitor.start('/tmp/cartpole-experiment-1', force=True)
 
 dim = max(np.shape(env.observation_space))
 dim_actions = env.action_space.n
@@ -25,8 +25,8 @@ num_nodes_value = 100
 discount_factor = .999
 
 num_gradients = 1
-maxsteps = 1000
-num_runs = 2000
+maxsteps = 600
+num_runs = 1000
 
 sess = tf.InteractiveSession()
 
@@ -34,6 +34,7 @@ sess = tf.InteractiveSession()
 state = tf.placeholder(tf.float32, shape=[None, dim])
 action_choice = tf.placeholder(tf.float32, shape=[None, dim_actions])
 reward_signal = tf.placeholder(tf.float32, shape=(None, 1))
+advantage_signal = tf.placeholder(tf.float32, shape=(None, 1))
 
 
 # Value Network - uses state and reward_signal
@@ -62,8 +63,7 @@ ao = tf.nn.softmax(tf.matmul(a1, Wo) + bo)
 
 log_prob = tf.log(tf.diag_part(tf.matmul(ao, tf.transpose(action_choice))))# fix this so it doesn't need diag
 log_prob = tf.reshape(log_prob, (1,-1))
-advantage = reward_signal - ao_value
-loss = tf.matmul(log_prob, advantage)
+loss = tf.matmul(log_prob, advantage_signal)
 #loss = tf.matmul(log_prob, reward_signal)
 loss = -tf.reshape(loss, [-1])
 train_step = tf.train.AdamOptimizer().minimize(loss)
@@ -121,6 +121,12 @@ for run in range(num_runs):
     weighted_sum_rewards= np.reshape(weighted_sum_rewards[:timestep_of_run,0], (timestep_of_run, 1))
     
     final_rewards = weighted_sum_rewards
+    current_values = sess.run(ao_value, feed_dict={state: states})
+
+    advantages = final_rewards - current_values
+
+
+
 
     #print 'value function loss'
     #print sess.run(loss_value, feed_dict={state: states, reward_signal: final_rewards})
@@ -136,13 +142,13 @@ for run in range(num_runs):
         print 'run #: ', run
         print 'Time lasted: ', timestep
         print 'value function loss', sess.run(loss_value, feed_dict={state: states, reward_signal: final_rewards})
-        print 'policy function loss', sess.run(loss, feed_dict={state: states, action_choice: actions, reward_signal: final_rewards})
+        print 'policy function loss', sess.run(loss, feed_dict={state: states, action_choice: actions, advantage_signal: advantages})
         print ''
     #print 'policy function loss'
-    #print sess.run(loss, feed_dict={state: states, action_choice: actions, reward_signal: final_rewards})
+    #print sess.run(loss, feed_dict={state: states, action_choice: actions, advantage_signal: advantages})
     for i in range(num_gradients):
-        sess.run(train_step, feed_dict={state: states, action_choice: actions, reward_signal: final_rewards})
-    #    print sess.run(loss, feed_dict={state: states, action_choice: actions, reward_signal: final_rewards})
+        sess.run(train_step, feed_dict={state: states, action_choice: actions, advantage_signal: advantages})
+    #    print sess.run(loss, feed_dict={state: states, action_choice: actions, advantage_signal: advantages})
     #print ''
 
 
@@ -154,6 +160,6 @@ env.render(close=True)
 plt.plot(timestep_learning)
 plt.show()
 
-env.monitor.close()
+#env.monitor.close()
 
 
