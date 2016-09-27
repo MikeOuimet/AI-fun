@@ -13,7 +13,7 @@ def bias_variable(shape):
 
 
 #Initial state and NN
-env = gym.make('CartPole-v0')
+env = gym.make('MountainCar-v0')
 #env.monitor.start('/tmp/cartpole-experiment-1', force=True)
 
 dim = max(np.shape(env.observation_space))
@@ -21,18 +21,35 @@ dim_actions = env.action_space.n
 
 num_nodes = 100
 
+num_nodes_value = 100
+
 num_gradients = 1
-maxsteps = 1000
+maxsteps = 200
 num_runs = 1000
 
 sess = tf.InteractiveSession()
 
+# State placeholders
 state = tf.placeholder(tf.float32, shape=[None, dim])
 action_choice = tf.placeholder(tf.float32, shape=[None, dim_actions])
-reward_signal = tf.placeholder(tf.float32, shape=(None,1) )
-n_timesteps = tf.placeholder(tf.float32, shape=())
+reward_signal = tf.placeholder(tf.float32, shape=(None, 1))
 
 
+# Value Network - uses state and reward_signal
+W1_value = weight_variable([dim, num_nodes_value])
+b1_value = bias_variable([num_nodes_value])
+a1_value = tf.nn.relu(tf.matmul(state, W1_value) + b1_value)
+
+Wo_value = weight_variable([num_nodes_value, 1])
+bo_value = bias_variable([1])
+ao_value = tf.matmul(a1_value, Wo_value) + bo_value
+
+loss_value = tf.nn.l2_loss(ao_value - reward_signal)
+train_step_value = tf.train.AdamOptimizer().minimize(loss_value)
+
+
+
+# Policy Network
 W1 = weight_variable([dim, num_nodes])
 b1 = bias_variable([num_nodes])
 a1 = tf.nn.relu(tf.matmul(state, W1) + b1)
@@ -44,9 +61,15 @@ ao = tf.nn.softmax(tf.matmul(a1, Wo) + bo)
 
 log_prob = tf.log(tf.diag_part(tf.matmul(ao, tf.transpose(action_choice))))# fix this so it doesn't need diag
 log_prob = tf.reshape(log_prob, (1,-1))
-loss = tf.matmul(log_prob, reward_signal)
+advantage = reward_signal - ao_value
+loss = tf.matmul(log_prob, advantage)
+#loss = tf.matmul(log_prob, reward_signal)
 loss = -tf.reshape(loss, [-1])
 train_step = tf.train.AdamOptimizer().minimize(loss)
+
+
+
+
 init = tf.initialize_all_variables()
 sess = tf.Session()
 sess.run(init)
@@ -78,20 +101,40 @@ for run in range(num_runs):
         
         observation[:] = new_observation
 
+        timestep_learning[run]=timestep
     states = states[:timestep, :]
     actions = actions[:timestep, :]
     rewards = rewards[:timestep,:]
     rewards[:, 0] = np.cumsum(rewards[::-1])[::-1]
+    #print 'value function loss'
+    #print sess.run(loss_value, feed_dict={state: states, reward_signal: rewards})
+    for i in range(num_gradients):
+        sess.run(train_step_value, feed_dict={state: states, action_choice: actions, reward_signal: rewards})
+    #    print sess.run(loss_value, feed_dict={state: states, reward_signal: rewards})
+    #print ''
+
+
+    
 
     if run % 50 == 0:
         print 'run #: ', run
         print 'Time lasted: ', timestep
+        print 'value function loss', sess.run(loss_value, feed_dict={state: states, reward_signal: rewards})
+        print 'policy function loss', sess.run(loss, feed_dict={state: states, action_choice: actions, reward_signal: rewards})
+        print ''
+    #print sess.run(loss, feed_dict={state: states, action_choice: actions, reward_signal: rewards})
     for i in range(num_gradients):
-        sess.run(train_step, feed_dict={state: states, action_choice: actions, reward_signal: rewards, n_timesteps: timestep})
-    timestep_learning[run] = timestep
+        sess.run(train_step, feed_dict={state: states, action_choice: actions, reward_signal: rewards})
+    #    print sess.run(loss, feed_dict={state: states, action_choice: actions, reward_signal: rewards})
+    #print ''
+
+
+
+#timestep_learning[run] = timestep
 
 #env.monitor.close()
 env.render(close=True)
-plt.plot(timestep_learning)
-plt.show()
+#plt.plot(timestep_learning)
+#plt.show()
 
+#env.monitor.close()
