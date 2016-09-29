@@ -4,3 +4,4 @@
 uploadtogym.py
 compression/images
 RLbasics/vizdoom.ini
+*.npy
