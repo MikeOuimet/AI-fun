@@ -2,6 +2,10 @@ import numpy as np
 import gym
 import tensorflow as tf
 import matplotlib.pyplot as plt
+import gym_pull
+
+
+
 
 def weight_variable(shape):
   initial = tf.truncated_normal(shape, stddev=0.1)
@@ -13,8 +17,10 @@ def bias_variable(shape):
 
 
 #Initial state and NN
+#env = gym.make('ppaquette/DoomBasic-v0')
 env = gym.make('CartPole-v1')
 #env.monitor.start('/tmp/cartpole-experiment-1', force=True)
+
 
 dim = max(np.shape(env.observation_space))
 dim_actions = env.action_space.n
@@ -25,7 +31,7 @@ num_nodes_value = 100
 discount_factor = .999
 
 num_gradients = 1
-maxsteps = 600
+maxsteps = 500
 num_runs = 1000
 
 sess = tf.InteractiveSession()
@@ -94,8 +100,8 @@ for run in range(num_runs):
     done = False
     
     while not done and timestep < maxsteps:
-        #if run % 50 == 0:
-        #    env.render()
+        if run % 50 == 0:
+            env.render()
         action_prob = sess.run(ao, feed_dict={state: observation})
         action = np.argmax(np.random.multinomial(1, action_prob[0]))
         new_observation, reward, done, info = env.step(action)
@@ -161,5 +167,4 @@ plt.plot(timestep_learning)
 plt.show()
 
 #env.monitor.close()
-
 
