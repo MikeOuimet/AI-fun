@@ -26,7 +26,7 @@ def meandist2points(image, kpoints):
     return np.mean(vecdists)
 
 
-img = ndimage.imread('lola.JPG')
+img = ndimage.imread('mike_lounging.jpg')
 
 img_height = np.shape(img)[0]
 img_width = np.shape(img)[1]
@@ -35,8 +35,8 @@ plt.imshow(img)
 
 new_img = np.reshape(img, (img_width*img_height, 3))
 
-num_ks = 20
-for k in range(14, num_ks):
+num_ks = 31
+for k in range(21, num_ks):
     kvec = np.random.uniform(0, 255, (k, 3))
     err = meandist2points(new_img, kvec)
     while True:
@@ -81,7 +81,7 @@ for k in range(14, num_ks):
     final_img = np.reshape(compressed_img, (img_height,img_width,3))
     plt.imshow(-final_img)
     
-    stringname = 'lola%dcolor.png' % k
+    stringname = 'me%dcolor.png' % k
     plt.imsave(fname=stringname, arr= -final_img, format='png')
 
 #residual = np.abs(compressed_img - new_img)

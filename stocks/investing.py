@@ -15,13 +15,13 @@ mixture_var = npzfile['mixture_var']
 mixture_latent_likelihood = npzfile['mixture_latent_likelihood']
 
 
-initial = 0
-per_year = 10
-inflation = .03
-n_runs = 10000
-fraction_bonds = 0.5
+initial = 100
+per_year = 46
+inflation = .025
+n_runs = 8000
+fraction_bonds = 0.0
 
-years_investing = 26
+years_investing = 40
 
 amount_stocks = np.ones(shape=(n_runs, years_investing))
 amount_stocks[:, 0] = initial*(1-fraction_bonds)
@@ -36,7 +36,6 @@ for run in range(n_runs):
 		amount_stocks[run, year+1] = total*(1 -fraction_bonds)
 amount = amount_bonds + amount_stocks
 mean_of_runs = np.mean(amount, axis = 0)
-print np.shape(mean_of_runs)
 min_of_runs = np.min(amount, axis = 0)
 max_of_runs = np.max(amount, axis = 0)
 sd_of_runs = np.std(amount,axis = 0)
@@ -44,13 +43,23 @@ plus_2sd = mean_of_runs + 2*sd_of_runs
 minus_2sd = mean_of_runs - 2*sd_of_runs
 plus_1sd = mean_of_runs + 1*sd_of_runs
 minus_1sd = mean_of_runs - 1*sd_of_runs
+
 '''
+min_year = np.zeros(n_runs)
+for run in range(n_runs):
+	min_year[run] = np.min([i for i,v in enumerate(amount[run,:]) if v > 1500])
+
+print np.mean(min_year)
+print np.std(min_year)
+'''
+
+
 #plt.plot(max_of_runs, label ='max')
-plt.plot(plus_2sd, label ='+2sd')
+#plt.plot(plus_2sd, label ='+2sd')
 plt.plot(plus_1sd, label ='+1sd')
 plt.plot(mean_of_runs, label='mean')
 plt.plot(minus_1sd, label ='-1sd')
-plt.plot(minus_2sd, label ='-2sd')
+#plt.plot(minus_2sd, label ='-2sd')
 #plt.plot(min_of_runs, label ='min')
 plt.legend(loc='upper left')
 plt.show()
@@ -58,6 +67,7 @@ plt.show()
 #	plt.plot(amount[i,:])
 #plt.show()
 
-'''
-plt.hist(amount[:,21], bins=100, alpha=1)
+
+plt.hist(amount[:,31], bins=200, alpha=1)
 plt.show()
+
