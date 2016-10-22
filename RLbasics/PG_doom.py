@@ -46,7 +46,7 @@ discount_factor = .999
 patch_size = 20
 
 num_gradients = 1
-maxsteps = 500
+maxsteps = 50
 num_runs = 1
 
 sess = tf.InteractiveSession()
@@ -57,6 +57,7 @@ action_choice = tf.placeholder(tf.float32, shape=[None, 3])  #potentially fix
 reward_signal = tf.placeholder(tf.float32, shape=(None, 1))
 advantage_signal = tf.placeholder(tf.float32, shape=(None, 1))
 
+#Shared network
 W_conv1 = weight_variable([patch_size, patch_size, 3, 32])
 b_conv1 = bias_variable([32])
 h_conv1 = tf.nn.relu(conv2d(state, W_conv1) + b_conv1)
@@ -78,21 +79,83 @@ b_fc1 = bias_variable([1024])
 h_pool2_flat = tf.reshape(h_pool2, [-1, 80*128])
 h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
 
-keep_prob = tf.placeholder(tf.float32)
-h_fc1_drop = tf.nn.dropout(h_fc1, keep_prob)
+#keep_prob = tf.placeholder(tf.float32)
+#h_fc1_drop = tf.nn.dropout(h_fc1, keep_prob)
 
+#Policy End of network
 W_fc2 = weight_variable([1024, 3])
 b_fc2 = bias_variable([3])
+ao = tf.nn.softmax(tf.matmul(h_fc1, W_fc2) + b_fc2)
+log_prob = tf.log(tf.diag_part(tf.matmul(ao, tf.transpose(action_choice))))# fix this so it doesn't need diag
+log_prob = tf.reshape(log_prob, (1,-1))
+loss = tf.matmul(log_prob, advantage_signal)
+loss = -tf.reshape(loss, [-1])
+train_step = tf.train.AdamOptimizer().minimize(loss)
 
-ao = tf.nn.softmax(tf.matmul(h_fc1_drop, W_fc2) + b_fc2)
-
-
+# Value End of network
 W_fc2_value = weight_variable([1024, 1])
 b_fc2_value = bias_variable([1])
+ao_value = tf.matmul(h_fc1, W_fc2_value) + b_fc2_value
+loss_value = tf.nn.l2_loss(ao_value - reward_signal)
+train_step_value = tf.train.AdamOptimizer().minimize(loss_value)
 
-ao_value = tf.nn.softmax(tf.matmul(h_fc1_drop, W_fc2_value) + b_fc2_value)
+init = tf.initialize_all_variables()
+sess = tf.Session()
+sess.run(init)
 
-print ao_value
+
+reward_discount = np.ones(maxsteps)
+for rs in range(1,maxsteps):
+    reward_discount[rs] = discount_factor*reward_discount[rs-1] #generate discounting vector to multiply rewards by
+
+for run in range(num_runs):
+
+    states = np.zeros((maxsteps, 480, 640, 3), dtype='uint8')
+    actions = np.zeros((maxsteps,3), dtype='uint8')
+    rewards = np.zeros((maxsteps,1), dtype='float32')
+    weighted_sum_rewards = np.zeros((maxsteps,1), dtype='float32')
+    final_rewards = np.zeros((maxsteps,1), dtype='float32')
+    timestep =0
+    observation = env.reset()
+    observation = np.reshape(observation, (1, 480, 640, 3))
+    done = False
+    
+    while not done and timestep < maxsteps:
+        if run % 50 == 0:
+            env.render()
+        action_prob = sess.run(h_pool3, feed_dict={state: observation})
+        print np.shape(action_prob)
+'''
+        action = np.argmax(np.random.multinomial(1, action_prob[0]))
+        new_observation, reward, done, info = env.step(action)
+        
+        states[timestep, :] = observation
+    
+        actions[timestep, action] = 1
+        rewards[timestep, :] = reward
+        timestep += 1
+        
+        observation[:] = new_observation
+
+    
+    #timestep_learning[run]=timestep
+    timestep_of_run = timestep
+    states = states[:timestep_of_run, :]
+    actions = actions[:timestep_of_run, :]
+    rewards = rewards[:timestep_of_run,:]
+    #summed_rewards[:, 0] = np.cumsum(rewards[::-1])[::-1]
+
+    for step in range(timestep_of_run):
+        weighted_sum_rewards[step,0] = rewards[step:,0].dot(reward_discount[:timestep_of_run - step])
+    weighted_sum_rewards= np.reshape(weighted_sum_rewards[:timestep_of_run,0], (timestep_of_run, 1))
+    
+    final_rewards = weighted_sum_rewards
+    current_values = sess.run(ao_value, feed_dict={state: states})
+
+    advantages = final_rewards - current_values
+'''
+
+
 '''
 # Value Network - uses state and reward_signal
 W1_value = weight_variable([dim, num_nodes_value])
