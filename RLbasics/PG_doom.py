@@ -48,8 +48,8 @@ discount_factor = .999
 
 patch_size = 20
 
-num_gradients = 1
-maxsteps = 50
+num_gradients = 5
+maxsteps = 10
 num_runs = 1
 nskips = 4
 
@@ -124,8 +124,8 @@ for run in range(num_runs):
     observation = np.reshape(observation, (1, 480, 640, 3))
     done = False
     
-    for i in range(10):
-    #while not done and timestep < maxsteps:
+    #for i in range(10):
+    while not done and timestep < maxsteps:
         env.render()
         action_prob = sess.run(ao, feed_dict={state: observation})
         #print action_prob
@@ -144,66 +144,55 @@ for run in range(num_runs):
         #new_observation, reward, done, info = env.step(action_step)
         for skip in range(nskips):
             observation, reward, done, info = env.step(action_vec)
-            observation = np.reshape(observation, (1, 480, 640, 3))
-'''        
+        observation = np.reshape(observation, (1, 480, 640, 3))
+        
         states[timestep, :] = observation
     
         actions[timestep, action] = 1
         rewards[timestep, :] = reward
         timestep += 1
         
-        observation[:] = new_observation
+        #observation[:] = new_observation
 
-    
+
     #timestep_learning[run]=timestep
     timestep_of_run = timestep
+    print timestep_of_run
     states = states[:timestep_of_run, :]
     actions = actions[:timestep_of_run, :]
     rewards = rewards[:timestep_of_run,:]
+    print rewards
     #summed_rewards[:, 0] = np.cumsum(rewards[::-1])[::-1]
 
     for step in range(timestep_of_run):
         weighted_sum_rewards[step,0] = rewards[step:,0].dot(reward_discount[:timestep_of_run - step])
     weighted_sum_rewards= np.reshape(weighted_sum_rewards[:timestep_of_run,0], (timestep_of_run, 1))
-    
+    print weighted_sum_rewards
+   
     final_rewards = weighted_sum_rewards
     current_values = sess.run(ao_value, feed_dict={state: states})
-
+    print current_values
+    print ''
     advantages = final_rewards - current_values
-'''
+    print advantages
 
-
-'''
-    
-    for step in range(timestep_of_run):
-    	weighted_sum_rewards[step,0] = rewards[step:,0].dot(reward_discount[:timestep_of_run - step])
-    weighted_sum_rewards= np.reshape(weighted_sum_rewards[:timestep_of_run,0], (timestep_of_run, 1))
-    
-    final_rewards = weighted_sum_rewards
-    current_values = sess.run(ao_value, feed_dict={state: states})
-
-    advantages = final_rewards - current_values
-
-
-
-
-    #print 'value function loss'
-    #print sess.run(loss_value, feed_dict={state: states, reward_signal: final_rewards})
+    print 'value function loss'
+    print sess.run(loss_value, feed_dict={state: states, reward_signal: final_rewards})
     for i in range(num_gradients):
         sess.run(train_step_value, feed_dict={state: states, action_choice: actions, reward_signal: final_rewards})
-    #    print sess.run(loss_value, feed_dict={state: states, reward_signal: final_rewards})
+        print sess.run(loss_value, feed_dict={state: states, reward_signal: final_rewards})
     #print ''
 
 
     
-
+'''
     if run % 50 == 0:
         print 'run #: ', run
         print 'Time lasted: ', timestep
         print 'value function loss', sess.run(loss_value, feed_dict={state: states, reward_signal: final_rewards})
         print 'policy function loss', sess.run(loss, feed_dict={state: states, action_choice: actions, advantage_signal: advantages})
         print ''
-    #print 'policy function loss'
+    print 'policy function loss'
     #print sess.run(loss, feed_dict={state: states, action_choice: actions, advantage_signal: advantages})
     for i in range(num_gradients):
         sess.run(train_step, feed_dict={state: states, action_choice: actions, advantage_signal: advantages})
