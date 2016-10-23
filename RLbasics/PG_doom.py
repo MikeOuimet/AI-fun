@@ -2,6 +2,7 @@ import numpy as np
 import gym
 import tensorflow as tf
 import matplotlib.pyplot as plt
+from scipy import ndimage
 import gym_pull
 
 ### 0 = shoot
@@ -25,6 +26,10 @@ def max_pool_2x2(x):
   return tf.nn.max_pool(x, ksize=[1, 2, 2, 1],
                         strides=[1, 2, 2, 1], padding='SAME')
 
+def mean_pool_nxm(x,n,m):
+  return tf.nn.avg_pool(x, ksize=[1, n, n, 1],
+                        strides=[1, m, m, 1], padding='SAME')
+
 
 #Initial state and NN
 env = gym.make('ppaquette/DoomBasic-v0')
@@ -46,20 +51,30 @@ image_shape = np.shape(observation)
 #num_nodes_value = 100
 discount_factor = .999
 
-patch_size = 20
+patch_size = 2
 
-num_gradients = 5
+num_gradients = 1
 maxsteps = 10
 num_runs = 1
 nskips = 4
 
-sess = tf.InteractiveSession()
+height_start = 180
+height_end = 250
+width_start = 50
+width_end = 590
 
 # State placeholders
-state = tf.placeholder(tf.float32, shape=[None, 480, 640, 3])
+original_state = tf.placeholder(tf.float32, shape=[None, height_end-height_start, width_end-width_start, 3])
+state = tf.placeholder(tf.float32, shape=[None, 35, 270, 3])
 action_choice = tf.placeholder(tf.float32, shape=[None, 3])  #potentially fix
 reward_signal = tf.placeholder(tf.float32, shape=(None, 1))
 advantage_signal = tf.placeholder(tf.float32, shape=(None, 1))
+
+#Pooling pre-processing
+h_prepool1 = mean_pool_nxm(original_state, 1, 2)
+h_prepool2 = mean_pool_nxm(h_prepool1, 2 , 1)
+#h_prepool3 = mean_pool_nxm(h_prepool2, 2 , 1)
+
 
 #Shared network
 W_conv1 = weight_variable([patch_size, patch_size, 3, 32])
@@ -70,17 +85,14 @@ h_pool1 = max_pool_2x2(h_conv1)
 W_conv2 = weight_variable([patch_size, patch_size, 32, 64])
 b_conv2 = bias_variable([64])
 h_conv2 = tf.nn.relu(conv2d(h_pool1, W_conv2) + b_conv2)
-h_pool2 = max_pool_2x2(h_conv2)
+h_pool2 = max_pool_2x2(h_conv2)  # ends at (None, 3, 17, 64)
 
-W_conv3 = weight_variable([patch_size, patch_size, 64, 128])
-b_conv3 = bias_variable([128])
-h_conv3 = tf.nn.relu(conv2d(h_pool2, W_conv3) + b_conv3)
-h_pool3 = max_pool_2x2(h_conv3)
 
-W_fc1 = weight_variable([80*128, 1024])
+
+W_fc1 = weight_variable([3264, 1024])
 b_fc1 = bias_variable([1024])
 
-h_pool3_flat = tf.reshape(h_pool3, [-1, 80*128])
+h_pool3_flat = tf.reshape(h_pool2, [-1, 3264])
 h_fc1 = tf.nn.relu(tf.matmul(h_pool3_flat, W_fc1) + b_fc1)
 
 #keep_prob = tf.placeholder(tf.float32)
@@ -103,9 +115,17 @@ ao_value = tf.matmul(h_fc1, W_fc2_value) + b_fc2_value
 loss_value = tf.nn.l2_loss(ao_value - reward_signal)
 train_step_value = tf.train.AdamOptimizer().minimize(loss_value)
 
+
 init = tf.initialize_all_variables()
 sess = tf.Session()
 sess.run(init)
+
+#print h_prepool1
+#print h_prepool2
+#print h_prepool3
+#print ''
+print h_pool1
+print h_pool2
 
 
 reward_discount = np.ones(maxsteps)
@@ -123,14 +143,17 @@ for run in range(num_runs):
     observation = env.reset()
     observation = np.reshape(observation, (1, 480, 640, 3))
     done = False
+    pooled_picture = sess.run(h_prepool2, feed_dict={original_state: observation[:,height_start:height_end,width_start:width_end,:]})
+    #print np.shape(pooled_picture) (1,35, 270,3)
+    #plt.imshow(pooled_picture[0,:,:,:])
+    #plt.imsave(fname='pic.jpg', arr= -pooled_picture[0,:,:,:], format='jpg')
     
-    #for i in range(10):
-    while not done and timestep < maxsteps:
-        env.render()
-        action_prob = sess.run(ao, feed_dict={state: observation})
+    for i in range(10):
+    #while not done and timestep < maxsteps:
+        #env.render()
+        action_prob = sess.run(ao, feed_dict={state: pooled_picture})
         #print action_prob
         action_vec = np.zeros(np.shape(env.action_space))
-
 
         action = np.argmax(np.random.multinomial(1, action_prob[0]))
         action_vec = np.zeros(np.shape(env.action_space))
@@ -140,10 +163,11 @@ for run in range(num_runs):
             action_vec[10] =1 #right
         elif action ==2:
             action_vec[11] = 1 #left
-        #print action_vec
+        print action
+'''
         #new_observation, reward, done, info = env.step(action_step)
         for skip in range(nskips):
-            observation, reward, done, info = env.step(action_vec)
+            observation, reward, done, info = env.step(action_vec) # need to add all the data of the skips into history
         observation = np.reshape(observation, (1, 480, 640, 3))
         
         states[timestep, :] = observation
@@ -161,13 +185,13 @@ for run in range(num_runs):
     states = states[:timestep_of_run, :]
     actions = actions[:timestep_of_run, :]
     rewards = rewards[:timestep_of_run,:]
-    print rewards
+    print actions
     #summed_rewards[:, 0] = np.cumsum(rewards[::-1])[::-1]
 
     for step in range(timestep_of_run):
         weighted_sum_rewards[step,0] = rewards[step:,0].dot(reward_discount[:timestep_of_run - step])
     weighted_sum_rewards= np.reshape(weighted_sum_rewards[:timestep_of_run,0], (timestep_of_run, 1))
-    print weighted_sum_rewards
+    #print weighted_sum_rewards
    
     final_rewards = weighted_sum_rewards
     current_values = sess.run(ao_value, feed_dict={state: states})
@@ -185,29 +209,28 @@ for run in range(num_runs):
 
 
     
-'''
-    if run % 50 == 0:
-        print 'run #: ', run
-        print 'Time lasted: ', timestep
-        print 'value function loss', sess.run(loss_value, feed_dict={state: states, reward_signal: final_rewards})
-        print 'policy function loss', sess.run(loss, feed_dict={state: states, action_choice: actions, advantage_signal: advantages})
-        print ''
+
+    #if run % 50 == 0:
+    #    print 'run #: ', run
+    #    print 'Time lasted: ', timestep
+    #    print 'value function loss', sess.run(loss_value, feed_dict={state: states, reward_signal: final_rewards})
+    #    print 'policy function loss', sess.run(loss, feed_dict={state: states, action_choice: actions, advantage_signal: advantages})
+    #    print ''
     print 'policy function loss'
-    #print sess.run(loss, feed_dict={state: states, action_choice: actions, advantage_signal: advantages})
+    print sess.run(loss, feed_dict={state: states, action_choice: actions, advantage_signal: advantages})
     for i in range(num_gradients):
         sess.run(train_step, feed_dict={state: states, action_choice: actions, advantage_signal: advantages})
-    #    print sess.run(loss, feed_dict={state: states, action_choice: actions, advantage_signal: advantages})
+        print sess.run(loss, feed_dict={state: states, action_choice: actions, advantage_signal: advantages})
     #print ''
 
 
 
-timestep_learning[run] = timestep
+#timestep_learning[run] = timestep
 
 #env.monitor.close()
-env.render(close=True)
-plt.plot(timestep_learning)
-plt.show()
+#env.render(close=True)
+#plt.plot(timestep_learning)
+#plt.show()
 
 #env.monitor.close()
-
 '''
