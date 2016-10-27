@@ -6,3 +6,4 @@ compression/images
 RLbasics/vizdoom.ini
 *.npy
 *.jpg
+*.pyc
