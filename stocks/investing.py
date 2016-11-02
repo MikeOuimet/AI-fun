@@ -19,7 +19,7 @@ initial = 100
 per_year = 46
 inflation = .025
 n_runs = 8000
-fraction_bonds = 0.0
+fraction_bonds = 0.2
 
 years_investing = 40
 
@@ -68,6 +68,6 @@ plt.show()
 #plt.show()
 
 
-plt.hist(amount[:,31], bins=200, alpha=1)
+plt.hist(amount[:,11], bins=100, alpha=1)
 plt.show()
 

@@ -113,16 +113,15 @@ class TicTacToe(object):
     def user_input(self, s):
         user_action = input('Select a location:')
         #if user_action not in self.legal_actions(s):
-        #    self.user_input(s)
+        #    print 'Illegal move'
+        #    break
         new_state, reward = self.generative_model(s, user_action, 2)
         return new_state, reward
 
-    def play_TTT_MCTS(self, solver, ):
+    def play_TTT_MCTS(self, solver):
         game_over = False
         while not game_over:
             solver.search(self, solver.state)
-            #print solver.tree[tuple([2,0,1,0,2,2,0,1,1])]
-            #print solver.tree[tuple([2,0,1,2,2,2,0,1,1])]
             reward = solver.update_state(self, solver.state)
             self.print_state(solver.state)
             if reward == 1.0:
@@ -144,3 +143,20 @@ class TicTacToe(object):
                 print 'Draw!'
                 break
 
+''' Code for main.py
+import envs.tictactoe
+import solvers.mcts
+
+
+max_time = 1
+max_depth = 10
+exploration = 2
+board = [0,0,0,0,0,0,0,0,0]
+env = envs.tictactoe.TicTacToe(start = board)
+solver = solvers.mcts.MonteCarlo(env, max_time = max_time, max_depth = max_depth, exploration= exploration)
+
+env.play_TTT_MCTS(solver)
+
+
+
+'''

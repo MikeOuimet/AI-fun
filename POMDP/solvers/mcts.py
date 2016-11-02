@@ -1,6 +1,7 @@
 from __future__ import division
 import datetime
 from math import sqrt, log
+import numpy as np
 
 
 
@@ -18,22 +19,22 @@ class MonteCarlo(object):
         self.visit_init = 1
         self.value_init = 0.0
         self.tree = {}
-        self.add_tree_layer(env, self.start)
-        #self.history = env.h
+        #self.add_tree_layer(env, self.start)
 
 
     def add_tree_layer(self, env, s):
-        if tuple(s) not in self.tree:
-            self.tree[tuple(s)] = [self.value_init, self.visit_init]
+        #print self.to_tuple(s)
+        if self.to_tuple(s) not in self.tree:
+            self.tree[self.to_tuple(s)] = [self.value_init, self.visit_init]
             for move in env.legal_actions(s):
                 new_state, reward = env.generative_model(s, move, self.player)
-                self.tree[tuple(new_state)] = [reward, self.visit_init]
+                self.tree[self.to_tuple(new_state)] = [reward, self.visit_init]
 
 
     def simulate(self, env, s, depth):
         if depth > self.max_depth:
             return 0
-        if tuple(s) not in self.tree:
+        if self.to_tuple(s) not in self.tree:
             self.add_tree_layer(env, s)
             return self.rollout(env, s, depth)      
         new_a = self.UCT_sample(env, s)
@@ -45,10 +46,10 @@ class MonteCarlo(object):
         else:
             total_reward = reward + self.gamma*self.simulate(env, s_prime, depth+1)
         state_my_action, reward = env.generative_model(s, new_a, self.player)
-        self.tree[tuple(s)][1] += 1
-        self.tree[tuple(state_my_action)][1] += 1
-        self.tree[tuple(state_my_action)][0] += (total_reward - self.tree[tuple(state_my_action)][0])\
-        /(self.tree[tuple(state_my_action)][1])
+        self.tree[self.to_tuple(s)][1] += 1
+        self.tree[self.to_tuple(state_my_action)][1] += 1
+        self.tree[self.to_tuple(state_my_action)][0] += (total_reward - self.tree[self.to_tuple(state_my_action)][0])\
+        /(self.tree[self.to_tuple(state_my_action)][1])
         #if done:
         #
         return total_reward
@@ -61,11 +62,11 @@ class MonteCarlo(object):
         act_choice = acts[0] # use first action as initial guess 
         guess_next_state, reward = env.generative_model(s, act_choice, self.player)
         key = guess_next_state
-        value = self.tree[tuple(key)][0]
+        value = self.tree[self.to_tuple(key)][0]
         for act in acts:
             state, r = env.generative_model(s, act, self.player)
-            val = self.tree[tuple(state)][0] + \
-            self.c*sqrt(log(self.tree[tuple(s)][1]))/(sqrt(self.tree[tuple(state)][1]))
+            val = self.tree[self.to_tuple(state)][0] + \
+            self.c*sqrt(log(self.tree[self.to_tuple(s)][1]))/(sqrt(self.tree[self.to_tuple(state)][1]))
             if val > value:
                 value = val
                 act_choice = act
@@ -77,10 +78,10 @@ class MonteCarlo(object):
         act_choice = acts[0] # use first action as initial guess 
         guess_next_state, reward = env.generative_model(s, act_choice, self.player)
         key = guess_next_state
-        value = self.tree[tuple(key)][0]
+        value = self.tree[self.to_tuple(key)][0]
         for act in acts:
             state, r = env.generative_model(s, act, self.player)
-            val = self.tree[tuple(state)][0] 
+            val = self.tree[self.to_tuple(state)][0] 
             if val > value:
                 value = val
                 act_choice = act
@@ -120,7 +121,14 @@ class MonteCarlo(object):
         for state in next_states:
             #print state
             env.print_state(state)
-            print 'value', self.tree[tuple(state)][0]
-            print 'times visited', self.tree[tuple(state)][1]
-            print 'upper confidence bound', self.tree[tuple(state)][0] + self.c*sqrt(log(self.tree[tuple(s)][1]))/(sqrt(self.tree[tuple(state)][1]))
+            print 'value', self.tree[self.to_tuple(state)][0]
+            print 'times visited', self.tree[self.to_tuple(state)][1]
+            print 'upper confidence bound', self.tree[self.to_tuple(state)][0] + self.c*sqrt(log(self.tree[self.to_tuple(s)][1]))/(sqrt(self.tree[tuple(state)][1]))
             print ''
+
+    def to_tuple(self, s):
+        if type(s) == list:
+            return tuple(s)
+        #elif type(s) == numpy.ndarray:   # Figure out how to check for ndarray type
+        flat = s.flatten()
+        return tuple(flat)
