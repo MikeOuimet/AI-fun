@@ -1,4 +1,8 @@
+from __future__ import division
 import datetime
+from math import sqrt, log
+
+
 
 class MonteCarlo(object):
     # fully observable UCT so state is sufficient
@@ -6,25 +10,81 @@ class MonteCarlo(object):
         seconds = kwargs.get('max_time', 1)
         self.gamma = kwargs.get('gamma', 1.0)
         self.max_depth =kwargs.get('max_depth', 20)
+        self.c = kwargs.get('exploration', 2)
         self.calculation_time = datetime.timedelta(seconds=seconds)
         self.start = env.start
         self.state = self.start
+        self.player = 1
         self.visit_init = 1
-        self.value_init = 0
-        self.visits = {tuple(self.start): self.visit_init}
-        self.values =  {tuple(self.start): self.value_init}
+        self.value_init = 0.0
+        self.tree = {}
+        self.add_tree_layer(env, self.start)
         #self.history = env.h
+
+
+    def add_tree_layer(self, env, s):
+        if tuple(s) not in self.tree:
+            self.tree[tuple(s)] = [self.value_init, self.visit_init]
+            for move in env.legal_actions(s):
+                new_state, reward = env.generative_model(s, move, self.player)
+                self.tree[tuple(new_state)] = [reward, self.visit_init]
+
 
     def simulate(self, env, s, depth):
         if depth > self.max_depth:
             return 0
-        if tuple(s) not in self.visits:
-            for move in env.legal_actions(s):
-                new_state, reward = env.generative_model(s, move, 1)
-                self.visits[tuple(new_state)] = self.visit_init
-                self.values[tuple(new_state)] = reward
-            return self.rollout(env, s, depth)
-        pass
+        if tuple(s) not in self.tree:
+            self.add_tree_layer(env, s)
+            return self.rollout(env, s, depth)      
+        new_a = self.UCT_sample(env, s)
+        if new_a == 'done':  # Should this be in the environment?
+            return 0.0        #
+        s_prime, reward, done = env.two_ply_generative(s, new_a)
+        if done:
+            total_reward =  reward
+        else:
+            total_reward = reward + self.gamma*self.simulate(env, s_prime, depth+1)
+        state_my_action, reward = env.generative_model(s, new_a, self.player)
+        self.tree[tuple(s)][1] += 1
+        self.tree[tuple(state_my_action)][1] += 1
+        self.tree[tuple(state_my_action)][0] += (total_reward - self.tree[tuple(state_my_action)][0])\
+        /(self.tree[tuple(state_my_action)][1])
+        #if done:
+        #
+        return total_reward
+
+
+    def UCT_sample(self, env, s):
+        acts = env.legal_actions(s)
+        if len(acts) ==0:       # Should this be in the environment?
+            return 'done'       #
+        act_choice = acts[0] # use first action as initial guess 
+        guess_next_state, reward = env.generative_model(s, act_choice, self.player)
+        key = guess_next_state
+        value = self.tree[tuple(key)][0]
+        for act in acts:
+            state, r = env.generative_model(s, act, self.player)
+            val = self.tree[tuple(state)][0] + \
+            self.c*sqrt(log(self.tree[tuple(s)][1]))/(sqrt(self.tree[tuple(state)][1]))
+            if val > value:
+                value = val
+                act_choice = act
+        return act_choice
+
+
+    def best_action(self, env, s):
+        acts = env.legal_actions(s)
+        act_choice = acts[0] # use first action as initial guess 
+        guess_next_state, reward = env.generative_model(s, act_choice, self.player)
+        key = guess_next_state
+        value = self.tree[tuple(key)][0]
+        for act in acts:
+            state, r = env.generative_model(s, act, self.player)
+            val = self.tree[tuple(state)][0] 
+            if val > value:
+                value = val
+                act_choice = act
+        return act_choice
 
 
     def rollout(self, env, s, depth):
@@ -32,18 +92,35 @@ class MonteCarlo(object):
             return 0
         a = env.rollout_policy(s) #random?
         if a == 'Draw':
-            return 0
+            return 0.0
         new_state, reward, done = env.two_ply_generative(s, a)
-        print new_state
+        #print new_state
         if done:
             return reward
         else:
             return reward + self.gamma*self.rollout(env, new_state, depth+1)
 
-    def search(self, s):
+
+    def search(self, env, s):
         begin = datetime.datetime.utcnow()
         while datetime.datetime.utcnow() - begin < self.calculation_time:
-            # s ~ B(h)
-            # self.simulate(s, 0)
-            pass
+            self.simulate(env, s, 0)
         print '{} seconds have elapsed'.format(self.calculation_time)
+        self.stats_next_states(env, s)
+        
+    def update_state(self, env, s):
+        next_a = self.best_action(env, s)
+        new_state, reward = env.generative_model(s, next_a, self.player)
+        self.state = new_state
+        return reward
+
+
+    def stats_next_states(self, env, s):
+        next_states = env.legal_next_states(s, self.player)
+        for state in next_states:
+            #print state
+            env.print_state(state)
+            print 'value', self.tree[tuple(state)][0]
+            print 'times visited', self.tree[tuple(state)][1]
+            print 'upper confidence bound', self.tree[tuple(state)][0] + self.c*sqrt(log(self.tree[tuple(s)][1]))/(sqrt(self.tree[tuple(state)][1]))
+            print ''
