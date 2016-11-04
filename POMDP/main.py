@@ -1,3 +1,4 @@
+'''
 import envs.connectfour
 import solvers.mcts
 import numpy as np
@@ -14,3 +15,16 @@ print board
 
 
 print solver.to_tuple(solver.start)
+'''
+import envs.tictactoe
+import solvers.mcts
+
+
+max_time = 10
+max_depth = 10
+exploration = 50
+board = [0,0,0,0,0,0,0,0,0]
+env = envs.tictactoe.TicTacToe(start = board)
+solver = solvers.mcts.MonteCarlo(env, max_time = max_time, max_depth = max_depth, exploration= exploration)
+
+env.play_TTT_MCTS(solver)
