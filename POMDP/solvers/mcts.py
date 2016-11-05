@@ -40,13 +40,15 @@ class MonteCarlo(object):
         new_a = self.UCT_sample(env, s)
         if new_a == 'done':  # Should this be in the environment?
             return 0.0        #
-        s_prime, reward, done = env.two_ply_generative(s, new_a)
+        s_prime, reward, done = env.two_ply_generative(self, s, new_a)
         if done:
             total_reward =  reward
         else:
             total_reward = reward + self.gamma*self.simulate(env, s_prime, depth+1)
         state_my_action, reward = env.generative_model(s, new_a, self.player)
         self.tree[self.to_tuple(s)][1] += 1
+        self.tree[self.to_tuple(s)][0] += (total_reward - self.tree[self.to_tuple(s)][0])\
+        /(self.tree[self.to_tuple(s)][1])  # added so opponent can use
         self.tree[self.to_tuple(state_my_action)][1] += 1
         self.tree[self.to_tuple(state_my_action)][0] += (total_reward - self.tree[self.to_tuple(state_my_action)][0])\
         /(self.tree[self.to_tuple(state_my_action)][1])
@@ -94,7 +96,7 @@ class MonteCarlo(object):
         a = env.rollout_policy(s) #random?
         if a == 'Draw':
             return 0.0
-        new_state, reward, done = env.two_ply_generative(s, a)
+        new_state, reward, done = env.two_ply_generative(self, s, a)
         #print new_state
         if done:
             return reward

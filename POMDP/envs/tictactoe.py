@@ -1,3 +1,4 @@
+from __future__ import division
 from numpy.random import randint
 import copy
 class TicTacToe(object):
@@ -61,7 +62,7 @@ class TicTacToe(object):
         return s_prime, reward
 
 
-    def two_ply_generative(self, s, a):
+    def two_ply_generative(self, solver, s, a):
         player = 1
         done = False
         s_prime, reward = self.generative_model(s, a, player)
@@ -73,7 +74,7 @@ class TicTacToe(object):
             return s_prime, 0.0, done
         else:
             player = 2
-            opponent_action = self.opponent_rollout(s_prime)
+            opponent_action = self.opponent_rollout(solver, s_prime)
             s_prime, reward = self.generative_model(s_prime, opponent_action, player)
             if reward == -1.0:
                 done = True
@@ -91,14 +92,24 @@ class TicTacToe(object):
         else:
             return 'Draw'
 
-    def opponent_rollout(self, s):
+    def opponent_rollout(self,solver, s):
         acts = self.legal_actions(s)
         if len(acts) > 0:
+            some_in_tree = False
+            best_in_tree = 100
+            best_action = 100
+            count = 0
             for act in acts:
                 s_prime, reward = self.generative_model(s, act, 2)
                 if reward == -1.0:
                     return act
-
+                if solver.to_tuple(s_prime) in solver.tree:
+                    count += 1
+                    if solver.tree[solver.to_tuple(s_prime)][0] < best_in_tree:
+                        best_in_tree = solver.tree[solver.to_tuple(s_prime)][0]
+                        best_action = act
+            if count > 0:
+                print count/len(acts)
             return acts[randint(0, len(acts))]
         else:
             return 'Draw'
@@ -134,6 +145,7 @@ class TicTacToe(object):
         game_over = False
         while not game_over:
             solver.search(self, solver.state)
+            #print solver.tree
             reward = solver.update_state(self, solver.state)
             self.print_state(solver.state)
             if reward == 1.0:
