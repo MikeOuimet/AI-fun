@@ -98,6 +98,7 @@ class TicTacToe(object):
                 s_prime, reward = self.generative_model(s, act, 2)
                 if reward == -1.0:
                     return act
+
             return acts[randint(0, len(acts))]
         else:
             return 'Draw'
@@ -111,11 +112,22 @@ class TicTacToe(object):
         print s[6:9]
 
     def user_input(self, s):
-        user_action = input('Select a location:')
-        #if user_action not in self.legal_actions(s):
-        #    print 'Illegal move'
-        #    break
-        new_state, reward = self.generative_model(s, user_action, 2)
+        leg_acts = self.legal_actions(s)
+        legal_flag = False
+        while not legal_flag:
+            user_action = raw_input('Select a location (1-9):  ')
+            try:
+                user_action = int(user_action)
+            except:
+                print 'Not an integer'
+                continue
+            #else:
+            #    user_action = int(user_action)
+            if user_action-1 in self.legal_actions(s):
+                legal_flag = True
+            else:
+                print 'Illegal move'
+        new_state, reward = self.generative_model(s, user_action - 1, 2)
         return new_state, reward
 
     def play_TTT_MCTS(self, solver):

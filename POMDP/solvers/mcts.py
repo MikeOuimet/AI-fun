@@ -129,6 +129,6 @@ class MonteCarlo(object):
     def to_tuple(self, s):
         if type(s) == list:
             return tuple(s)
-        #elif type(s) == numpy.ndarray:   # Figure out how to check for ndarray type
-        flat = s.flatten()
-        return tuple(flat)
+        elif type(s) == np.ndarray:   # Figure out how to check for ndarray type
+            flat = s.flatten()
+            return tuple(flat)
