@@ -1,7 +1,9 @@
 from __future__ import division
 from numpy.random import randint
+from numpy.random import uniform
 import copy
-class TicTacToe(object):
+import envs.discretegame
+class TicTacToe(envs.discretegame.DiscreteGame):
     def __init__(self, **kwargs):
         self.start = kwargs.get('start', [0,0,0,0,0,0,0,0,0])
         self.s = self.start
@@ -46,73 +48,6 @@ class TicTacToe(object):
                 return -1.0
         else:
             return 0.0
-
-
-    def generative_model(self, s,a, player):
-        s_prime = copy.copy(s)
-        #print 'The player is', player
-        #print a
-        #if a == 'Draw'
-        #    return s, 0.0
-        s_prime[a] = player
-        reward = self.reward(s_prime)
-        #done = False
-        #if len(self.legal_actions(s_prime)) == 0:
-        #    done = True
-        return s_prime, reward
-
-
-    def two_ply_generative(self, solver, s, a):
-        player = 1
-        done = False
-        s_prime, reward = self.generative_model(s, a, player)
-        if reward == 1.0: # won
-            done = True
-            return s_prime, reward, done
-        if len(self.legal_actions(s_prime)) ==0:
-            done = True
-            return s_prime, 0.0, done
-        else:
-            player = 2
-            opponent_action = self.opponent_rollout(solver, s_prime)
-            s_prime, reward = self.generative_model(s_prime, opponent_action, player)
-            if reward == -1.0:
-                done = True
-            return s_prime, reward, done
-
-
-    def rollout_policy(self, s):
-        '''chooses actions for rollout policy'''
-        acts = self.legal_actions(s)
-        if len(acts) >0:
-            #for action in acts:
-            #    ns, reward = generative_model(s, action,)
-            #
-            return acts[randint(0, len(acts))]
-        else:
-            return 'Draw'
-
-    def opponent_rollout(self,solver, s):
-        acts = self.legal_actions(s)
-        if len(acts) > 0:
-            some_in_tree = False
-            best_in_tree = 100
-            best_action = 100
-            count = 0
-            for act in acts:
-                s_prime, reward = self.generative_model(s, act, 2)
-                if reward == -1.0:
-                    return act
-                if solver.to_tuple(s_prime) in solver.tree:
-                    count += 1
-                    if solver.tree[solver.to_tuple(s_prime)][0] < best_in_tree:
-                        best_in_tree = solver.tree[solver.to_tuple(s_prime)][0]
-                        best_action = act
-            if count > 0:
-                print count/len(acts)
-            return acts[randint(0, len(acts))]
-        else:
-            return 'Draw'
 
 
 
