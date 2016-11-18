@@ -7,3 +7,4 @@ RLbasics/vizdoom.ini
 *.npy
 *.jpg
 *.pyc
+*gz
