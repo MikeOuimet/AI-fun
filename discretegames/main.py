@@ -7,13 +7,14 @@ import numpy as np
 #  6 rows by 7 columns, therefore 7 actions
 
 
-max_time = 5
+max_time = 10
 max_depth = 23
-exploration = 2
-human_first = False
+exploration = 5
+human_first = True
 board = np.zeros(shape=(6,7), dtype = np.int) # rows by columns
 verbose = False
 warm_start = False
+save_tree = False
 #board[5,6] = 0
 #board[2,1] = 2
 #board[1,2] = 2
@@ -21,11 +22,11 @@ warm_start = False
 
 env = envs.connectfour.ConnectFour(start = board, human_first= human_first)
 solver = solvers.mcts.MonteCarlo(env, max_time = max_time, max_depth = max_depth, exploration= exploration, \
-	verbose= verbose, warm_start = warm_start)
+	verbose= verbose, warm_start = warm_start, save_tree= save_tree)
 
 env.play_game_MCTS(solver)
 
-
+#when training for both sides, sometimes a key seems to not be in tree
 
 
 '''

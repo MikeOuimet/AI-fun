@@ -2,7 +2,19 @@ from __future__ import division
 import datetime
 from math import sqrt, log
 import numpy as np
+try:
+   import cPickle as pickle
+except:
+   import pickle
 
+
+def save_obj(obj, name ):
+    with open(name + '.pkl', 'wb') as f:
+        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
+
+def load_obj(name ):
+    with open(name + '.pkl', 'rb') as f:
+        return pickle.load(f)
 
 
 class MonteCarlo(object):
@@ -14,13 +26,17 @@ class MonteCarlo(object):
         self.c = kwargs.get('exploration', 2)
         self.verbose = kwargs.get('verbose', False)
         self.warm_start = kwargs.get('warm_start', False)
+        self.save_tree = kwargs.get('save_tree', False)
         self.calculation_time = datetime.timedelta(seconds=seconds)
         self.start = env.start
         self.state = self.start
         self.player = 1
         self.visit_init = 1
         self.value_init = 0.0
-        self.tree = {}
+        if self.warm_start:
+            self.tree = load_obj('c4_tree')
+        else:
+            self.tree = {}
         #self.add_tree_layer(env, self.start)
 
 
@@ -70,7 +86,7 @@ class MonteCarlo(object):
         act_choice = acts[0] # use first action as initial guess 
         guess_next_state, reward = env.generative_model(s, act_choice, self.player)
         key = guess_next_state
-        value = self.tree[self.to_tuple(key)][0]
+        value = self.tree[self.to_tuple(key)][0]  #not in tree
         for act in acts:
             state, r = env.generative_model(s, act, self.player)
             val = self.tree[self.to_tuple(state)][0] + \
@@ -128,6 +144,11 @@ class MonteCarlo(object):
         print '{} seconds have elapsed'.format(self.calculation_time)
         if self.verbose:
             self.stats_next_states(env, s)
+        if self.save_tree:
+            print 'saving tree'
+            save_obj(self.tree, 'c4_tree')
+
+
         
     def update_state(self, env, s):
         next_a = self.best_action(env, s)

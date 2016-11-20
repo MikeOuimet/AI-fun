@@ -8,3 +8,4 @@ RLbasics/vizdoom.ini
 *.jpg
 *.pyc
 *gz
+*.pkl
