@@ -53,7 +53,6 @@ class MonteCarlo(object):
         self.tree[self.to_tuple(state_my_action)][0] += (total_reward - self.tree[self.to_tuple(state_my_action)][0])\
         /(self.tree[self.to_tuple(state_my_action)][1])
         #if done:
-        #
         return total_reward
 
 
@@ -125,7 +124,8 @@ class MonteCarlo(object):
             env.print_state(state)
             print 'value', self.tree[self.to_tuple(state)][0]
             print 'times visited', self.tree[self.to_tuple(state)][1]
-            print 'upper confidence bound', self.tree[self.to_tuple(state)][0] + self.c*sqrt(log(self.tree[self.to_tuple(s)][1]))/(sqrt(self.tree[tuple(state)][1]))
+            print 'upper confidence bound', self.tree[self.to_tuple(state)][0] + \
+                self.c*sqrt(log(self.tree[self.to_tuple(s)][1]))/(sqrt(self.tree[self.to_tuple(state)][1]))
             print ''
 
     def to_tuple(self, s):

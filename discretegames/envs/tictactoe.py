@@ -14,15 +14,6 @@ class TicTacToe(envs.discretegame.DiscreteGame):
         return [i for i,v in enumerate(s) if v == 0]
 
 
-    def legal_next_states(self, s, player):
-        acts = self.legal_actions(s)
-        next_states = []
-        for act in acts:
-            s_prime, reward = self.generative_model(s, act, player)
-            next_states.append(s_prime)
-        return next_states
-
-
     def reward(self, s):
         for i in [0, 3, 6]:
             if s[i]==s[i+1] and s[i+1] == s[i+2] and s[i] != 0:
@@ -75,6 +66,14 @@ class TicTacToe(envs.discretegame.DiscreteGame):
                 print 'Illegal move'
         new_state, reward = self.generative_model(s, user_action - 1, 2)
         return new_state, reward
+
+
+    def generative_model(self, s, a, player):
+        s_prime = copy.copy(s)
+        s_prime[a] = player
+        reward = self.reward(s_prime)
+        return s_prime, reward
+
 
     def play_TTT_MCTS(self, solver):
         game_over = False

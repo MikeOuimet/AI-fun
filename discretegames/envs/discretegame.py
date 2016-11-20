@@ -8,11 +8,6 @@ class DiscreteGame(object):
     def test(self, s):
        print s
 
-    def generative_model(self, s,a, player):
-        s_prime = copy.copy(s)
-        s_prime[a] = player
-        reward = self.reward(s_prime)
-        return s_prime, reward
 
     def two_ply_generative(self, solver, s, a):
         player = 1
@@ -21,7 +16,7 @@ class DiscreteGame(object):
         if reward == 1.0: # won
             done = True
             return s_prime, reward, done
-        if len(self.legal_actions(s_prime)) ==0:
+        if len(self.legal_actions(s_prime)) == 0:
             done = True
             return s_prime, 0.0, done
         else:
@@ -31,6 +26,15 @@ class DiscreteGame(object):
             if reward == -1.0:
                 done = True
             return s_prime, reward, done
+
+
+    def legal_next_states(self, s, player):
+        acts = self.legal_actions(s)
+        next_states = []
+        for act in acts:
+            s_prime, reward = self.generative_model(s, act, player)
+            next_states.append(s_prime)
+        return next_states
 
 
     def opponent_rollout(self,solver, s):
@@ -58,6 +62,7 @@ class DiscreteGame(object):
                 return acts[randint(0, len(acts))]
         else:
             return 'Draw'
+
 
     def rollout_policy(self, s):
         '''chooses actions for rollout policy'''
