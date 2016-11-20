@@ -5,6 +5,8 @@ from numpy.random import uniform
 import copy
 
 class DiscreteGame(object):
+
+
     def test(self, s):
        print s
 
@@ -68,9 +70,63 @@ class DiscreteGame(object):
         '''chooses actions for rollout policy'''
         acts = self.legal_actions(s)
         if len(acts) >0:
-            #for action in acts:
-            #    ns, reward = generative_model(s, action,)
-            #
+            for act in acts:
+                s_prime, reward = self.generative_model(s, act, 1)
+                if reward == 1.0:
+                    return act
             return acts[randint(0, len(acts))]
         else:
             return 'Draw'
+
+    def play_game_MCTS(self, solver):
+        game_over = False
+        self.print_state(solver.state)
+        if self.human_first:
+            next_state, reward = self.user_input(solver.state)
+            solver.state = next_state
+        while not game_over:
+            solver.search(self, solver.state)
+            #print solver.tree
+            reward = solver.update_state(self, solver.state)
+            if reward == 'Draw':
+                print 'Draw!'
+                break
+            self.print_state(solver.state)
+            if reward == 1.0:
+                game_over = True
+                print 'I won!'
+                break
+            elif len(self.legal_actions(solver.state)) == 0:
+                game_over = True
+                print 'Draw!'
+                break
+            next_state, reward = self.user_input(solver.state)
+            solver.state = next_state
+            if reward == -1.0:
+                game_over = True
+                print 'You won!'
+                break
+            elif len(self.legal_actions(solver.state)) == 0:
+                game_over = True
+                print 'Draw!'
+                break
+
+
+    def user_input(self, s):
+        leg_acts = self.legal_actions(s)
+        legal_flag = False
+        while not legal_flag:
+            user_action = raw_input(self.user_string)
+            try:
+                user_action = int(user_action)
+            except:
+                print 'Not an integer'
+                continue
+            #else:
+            #    user_action = int(user_action)
+            if user_action-1 in self.legal_actions(s):
+                legal_flag = True
+            else:
+                print 'Illegal move'
+        new_state, reward = self.generative_model(s, user_action - 1, 2)
+        return new_state, reward

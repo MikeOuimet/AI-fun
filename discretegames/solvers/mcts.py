@@ -12,6 +12,8 @@ class MonteCarlo(object):
         self.gamma = kwargs.get('gamma', 1.0)
         self.max_depth =kwargs.get('max_depth', 20)
         self.c = kwargs.get('exploration', 2)
+        self.verbose = kwargs.get('verbose', False)
+        self.warm_start = kwargs.get('warm_start', False)
         self.calculation_time = datetime.timedelta(seconds=seconds)
         self.start = env.start
         self.state = self.start
@@ -32,13 +34,19 @@ class MonteCarlo(object):
 
 
     def simulate(self, env, s, depth):
+        #print 'The depth is {}'.format(depth)
+        #env.print_state(s)
+        #print ''
         if depth > self.max_depth:
             return 0
         if self.to_tuple(s) not in self.tree:
             self.add_tree_layer(env, s)
+            #print self.tree
             return self.rollout(env, s, depth)      
         new_a = self.UCT_sample(env, s)
         if new_a == 'done':  # Should this be in the environment?
+            print 'draw'
+            env.print_state(s)
             return 0.0        #
         s_prime, reward, done = env.two_ply_generative(self, s, new_a)
         if done:
@@ -52,7 +60,6 @@ class MonteCarlo(object):
         self.tree[self.to_tuple(state_my_action)][1] += 1
         self.tree[self.to_tuple(state_my_action)][0] += (total_reward - self.tree[self.to_tuple(state_my_action)][0])\
         /(self.tree[self.to_tuple(state_my_action)][1])
-        #if done:
         return total_reward
 
 
@@ -76,6 +83,8 @@ class MonteCarlo(object):
 
     def best_action(self, env, s):
         acts = env.legal_actions(s)
+        if len(acts) == 0:
+            return 'Draw'
         act_choice = acts[0] # use first action as initial guess 
         guess_next_state, reward = env.generative_model(s, act_choice, self.player)
         key = guess_next_state
@@ -90,13 +99,22 @@ class MonteCarlo(object):
 
 
     def rollout(self, env, s, depth):
+        #print 'top of rollout'
+        #print 'The depth is {}'.format(depth)
+        #env.print_state(s)
+        #print ''
         if depth > self.max_depth:
             return 0
         a = env.rollout_policy(s) #random?
         if a == 'Draw':
             return 0.0
         new_state, reward, done = env.two_ply_generative(self, s, a)
-        #print new_state
+        #print 'bottom of rollout'
+        #print 'The depth is {}'.format(depth)
+        #print 'Is done? {}'.format(done)
+        #print 'reward is {}'.format(reward)
+        #env.print_state(new_state)
+        #print ''
         if done:
             return reward
         else:
@@ -108,10 +126,13 @@ class MonteCarlo(object):
         while datetime.datetime.utcnow() - begin < self.calculation_time:
             self.simulate(env, s, 0)
         print '{} seconds have elapsed'.format(self.calculation_time)
-        self.stats_next_states(env, s)
+        if self.verbose:
+            self.stats_next_states(env, s)
         
     def update_state(self, env, s):
         next_a = self.best_action(env, s)
+        if next_a == 'Draw':
+            return next_a
         new_state, reward = env.generative_model(s, next_a, self.player)
         self.state = new_state
         return reward

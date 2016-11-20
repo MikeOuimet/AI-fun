@@ -4,27 +4,41 @@ import envs.connectfour
 import solvers.mcts
 import numpy as np
 
-# 7 columns by 6 rows, therefore 7 actions
+#  6 rows by 7 columns, therefore 7 actions
 
 
 max_time = 5
-max_depth = 45
+max_depth = 23
 exploration = 2
+human_first = False
 board = np.zeros(shape=(6,7), dtype = np.int) # rows by columns
-board[0,0] = 1
-board[0,1] = 1
-board[0,2] = 1
+verbose = False
+warm_start = False
+#board[5,6] = 0
+#board[2,1] = 2
+#board[1,2] = 2
+#board[0,3] = 2
 
-env = envs.connectfour.ConnectFour(start = board)
-solver = solvers.mcts.MonteCarlo(env, max_time = max_time, max_depth = max_depth, exploration= exploration)
+env = envs.connectfour.ConnectFour(start = board, human_first= human_first)
+solver = solvers.mcts.MonteCarlo(env, max_time = max_time, max_depth = max_depth, exploration= exploration, \
+	verbose= verbose, warm_start = warm_start)
+
+env.play_game_MCTS(solver)
 
 
-solver.search(env, env.start)
 
 
-# seems to be working
-# normal board biased against the ego player - what if opponent doesn't adversarily use the tree?
-# print outputs for one whole 45 move rollout, investigate whether there really aren't any draws
+'''
+[0 0 0 0 0 0 0]
+[0 0 0 0 0 0 0]
+[1 0 0 0 0 0 0]
+[2 1 0 2 0 0 0]
+[2 1 1 1 2 0 0]
+[2 2 1 1 1 2 0]
+value -1.0
+times visited 731
+upper confidence bound -0.783700472051
+'''
 
 '''
 env.state, reward =env.generative_model(env.state, 0, 2)

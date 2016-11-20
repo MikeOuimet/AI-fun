@@ -11,6 +11,8 @@ class ConnectFour(envs.discretegame.DiscreteGame):
         self.start = kwargs.get('start', np.zeros(shape=(6,7), dtype = np.int))
         self.state = self.start
         self.player = 1
+        self.human_first = kwargs.get('human_first', True)
+        self.user_string = 'Select a column (1-7):  '
 
 
     def legal_actions(self, s):
@@ -35,8 +37,29 @@ class ConnectFour(envs.discretegame.DiscreteGame):
 
 
     def print_state(self, s):
+        self.fancy_print(s)
+        #for row in range(6):
+        #    print s[5-row, :]
+
+    def fancy_print(self, s):
+        print ' 1 2 3 4 5 6 7 '
+        #print ' _______ '
         for row in range(6):
-            print s[5-row, :]
+            string = self.row_to_nice(s[5-row, :])
+            print string
+          
+
+
+    def row_to_nice(self, r):
+        string = '|'
+        for i in r:
+            if i == 0:
+                string += '_|'
+            if i == 1:
+                string += 'x|'
+            if i == 2:
+                string += 'o|'
+        return string 
 
 
     def win_in_row(self, v):
@@ -66,14 +89,14 @@ class ConnectFour(envs.discretegame.DiscreteGame):
                 else:
                     return -1.0
         diag_check = self.check_diags(s)
-        if diag_check != 0:
-            if check ==1:
+        if diag_check != 0.0:
+            if diag_check ==1:
                 return 1.0
             else:
                 return -1.0
         diag_check = self.check_diags(s[::-1])
-        if diag_check != 0:
-            if check ==1:
+        if diag_check != 0.0:
+            if diag_check ==1:
                 return 1.0
             else:
                 return -1.0
