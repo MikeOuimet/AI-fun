@@ -78,6 +78,15 @@ class MonteCarlo(object):
         /(self.tree[self.to_tuple(state_my_action)][1])
         return total_reward
 
+    def AsyncSearch(self, env, s):
+        acts = env.legal_actions(s)
+        count = 0
+        while env.thinking:
+            guessed_action = acts[np.random.randint(0, len(acts))]
+            s_prime, reward = env.generative_model(s, guessed_action, 2)
+            self.simulate(env, s_prime, 0)
+            count += 1
+        print 'I simulated {} games'.format(count)
 
     def UCT_sample(self, env, s):
         acts = env.legal_actions(s)

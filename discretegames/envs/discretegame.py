@@ -3,6 +3,8 @@ import numpy as np
 from numpy.random import randint
 from numpy.random import uniform
 import copy
+import threading
+
 
 class DiscreteGame(object):
 
@@ -78,14 +80,15 @@ class DiscreteGame(object):
         else:
             return 'Draw'
 
-    def play_game_MCTS(self, solver):
+    def play_game_MCTS(self, env, solver):
         game_over = False
         self.print_state(solver.state)
         if self.human_first:
-            next_state, reward = self.user_input(solver.state)
+            next_state, reward = self.user_input(solver, solver.state)
             solver.state = next_state
         while not game_over:
             solver.search(self, solver.state)
+            #solver.stats_next_states(env, solver.state)
             #print solver.tree
             reward = solver.update_state(self, solver.state)
             if reward == 'Draw':
@@ -100,7 +103,7 @@ class DiscreteGame(object):
                 game_over = True
                 print 'Draw!'
                 break
-            next_state, reward = self.user_input(solver.state)
+            next_state, reward = self.user_input(solver, solver.state)
             solver.state = next_state
             if reward == -1.0:
                 game_over = True
@@ -112,9 +115,13 @@ class DiscreteGame(object):
                 break
 
 
-    def user_input(self, s):
+    def user_input(self, solver, s):
         leg_acts = self.legal_actions(s)
         legal_flag = False
+        self.thinking = True
+        backgroundthread = threading.Thread(target = solver.AsyncSearch, args=(self, s))
+        backgroundthread.daemon = True
+        backgroundthread.start()
         while not legal_flag:
             user_action = raw_input(self.user_string)
             try:
@@ -128,5 +135,17 @@ class DiscreteGame(object):
                 legal_flag = True
             else:
                 print 'Illegal move'
+        self.thinking = False
+        backgroundthread.join()
+        # stop thinking while opponent thinks
         new_state, reward = self.generative_model(s, user_action - 1, 2)
         return new_state, reward
+
+
+#class AsyncSearch(threading.Thread):
+#    def __init__(self, env, solver, s):
+#        threading.Thread.__init__(self)
+#        self.s = s
+
+
+
