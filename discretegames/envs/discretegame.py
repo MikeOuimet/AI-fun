@@ -82,8 +82,8 @@ class DiscreteGame(object):
 
     def play_game_MCTS(self, env, solver):
         game_over = False
-        self.print_state(solver.state)
         if self.human_first:
+            self.print_state(solver.state)
             next_state, reward = self.user_input(solver, solver.state)
             solver.state = next_state
         while not game_over:
@@ -91,10 +91,10 @@ class DiscreteGame(object):
             #solver.stats_next_states(env, solver.state)
             #print solver.tree
             reward = solver.update_state(self, solver.state)
+            self.print_state(solver.state)
             if reward == 'Draw':
                 print 'Draw!'
                 break
-            self.print_state(solver.state)
             if reward == 1.0:
                 game_over = True
                 print 'I won!'
@@ -105,6 +105,7 @@ class DiscreteGame(object):
                 break
             next_state, reward = self.user_input(solver, solver.state)
             solver.state = next_state
+            self.print_state(solver.state)
             if reward == -1.0:
                 game_over = True
                 print 'You won!'
