@@ -10,14 +10,14 @@ import numpy as np
 #  6 rows by 7 columns, therefore 7 actions
 
 
-max_time = 100
+max_time = 5
 max_depth = 23
 exploration = 5
 human_first = True
 board = np.zeros(shape=(6,7), dtype = np.int) # rows by columns
 verbose = True
 warm_start = False
-save_tree = Flse
+save_tree = False
 #board[5,6] = 0
 #board[2,1] = 2
 #board[1,2] = 2

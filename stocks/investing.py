@@ -15,11 +15,11 @@ mixture_var = npzfile['mixture_var']
 mixture_latent_likelihood = npzfile['mixture_latent_likelihood']
 
 
-initial = 100
-per_year = 46
+initial = 0
+per_year = 45
 inflation = .025
 n_runs = 8000
-fraction_bonds = 0.2
+fraction_bonds = 0.1
 
 years_investing = 40
 

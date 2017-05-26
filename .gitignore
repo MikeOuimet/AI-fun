@@ -9,3 +9,4 @@ RLbasics/vizdoom.ini
 *.pyc
 *gz
 *.pkl
+*.swp
