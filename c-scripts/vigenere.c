@@ -14,7 +14,12 @@ int main(int argc, char **argv)
 	printf("Equivalent k is : ");
 	int l = strlen(key);
 	for (int c =0; c<l; c++){
+		if (key[c] >=97){
 		printf("%i ", key[c]-'a');
+		}
+		else{
+			printf("%i ", key[c]-'A');
+		}
 
 	}
 	printf("\n");
@@ -23,8 +28,15 @@ int main(int argc, char **argv)
 	for (int c =0; c<s_l; c++)
 	{	
 		
-
-		k = key[c%l]-'a';
+		if (key[c%l] >=97){
+			k = key[c%l]-'a';
+			//printf("%c\n",key[c%l]);
+			//printf("Numerical key is %i\n", k);
+		}
+		else{
+			k = key[c%l]-'A';
+			//printf("Numerical key is %i\n", k);
+		}
 		//printf("%i\n", s[c]);
 		if (s[c] >= 97){
 			s[c] = (s[c] + k- 'a')%26 +'a';
